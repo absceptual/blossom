@@ -1,68 +1,109 @@
-import React, { useState, Fragment } from 'react';
-
-import { Button } from "@/components/ui/button";
+'use client';
+// React imports
+import React, { useState, Fragment, useRef, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 
-const initialFiles = [
-    {
-        id: 'input',
-        name: 'input',
-        language: 'html',
-        content: '\n<h1>Hello, World!</h1>'
-    },
-    {
-        id: 'output',
-        name: 'output',
-        language: 'css',
-        content: '/* CSS Content */\nbody {\n  background-color: #2a2a2a;\n}'
-    },
-    {
-        id: 'compilation',
-        name: 'compilation',
-        language: 'javascript',
-        content: '// JavaScript Content\nconsole.log("Hello from the editor!");'
-    },
-];
+// shadcn/ui imports
+import { Button } from "@/components/ui/button";
 
-export default function Widgets({ editors }: { editors: string[] }) {
+
+export default function Widgets({ 
+    inputContent, 
+    outputContent, 
+    compilationContent,
+    errorContent,
+    setInputContent,
+    onDownloadCode
+}: {
+    inputContent?: string,
+    outputContent?: string,
+    compilationContent?: string,
+    errorContent?: string
+    setInputContent: (content: string) => void
+    onDownloadCode: () => void   
+}) {
     
-    const [files, setFiles] = useState(initialFiles);
-    
-    // 1. Use ONLY ONE state variable for the active file/widget.
-    // Initialize it to a consistent value.
     const [activeFileId, setActiveFileId] = useState('input');
+    const activeFileIdRef = useRef(activeFileId);
+    
+    useEffect(() => {
+        activeFileIdRef.current = activeFileId;
+    }, [activeFileId]);
 
-    const activeFile = files.find(file => file.id === activeFileId);
+    const editorRef = useRef(null);
+    const monacoRef = useRef(null);
 
+    const contentMap: { [key: string]: string } = {
+        input: inputContent ?? "1 2 3",
+        output: outputContent ?? "",
+        compilation: compilationContent ?? "",
+        error: errorContent ?? "",
+    };
 
-    // 2. Simplify the click handler to only update the single state.
     function onWidgetClick(event: React.MouseEvent<HTMLButtonElement>) {
+        console.log("Widget clicked:", event.currentTarget.id);
         setActiveFileId(event.currentTarget.id);
     }
+    
+    function handleEditorWillMount(monaco) {
+        'use client';
+        console.log(monaco.editor);
+        // This function is called before the editor is mounted
+        // You can use this to register custom languages, themes, etc.
+        monaco.editor.addEditorAction({
+            id: 'download-code',
+            label: 'Download Code',
+            keybindings: [
+                monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS
+            ],
+            precondition: null,
+            keybindingContext: null,
+            contextMenuGroupId: "navigation",
+
+	        contextMenuOrder: 1.5,
+            run: onDownloadCode
+        })
+
+    }
+
+
+    function handleEditorMount(editor, monaco) {
+        editorRef.current = editor;
+        monacoRef.current = monaco;
+    }
+
+    function handleEditorChange(newValue: string | undefined) {
+        if (activeFileIdRef.current === "input")  {
+            setInputContent(newValue ?? "");
+        }
+    }
+
+
 
     return (
         <Fragment>
             <div className="flex bg-neutral-900 h-5">
-                {editors.map((buttonId) => 
+                {Object.keys(contentMap).map((buttonId) => 
                     <Button 
                         key={buttonId} 
                         id={buttonId} 
                         onClick={onWidgetClick}
-                        // 3. Base the "active" style on the single `activeFileId` state.
                         className={`h-full text-[.70rem] rounded-none data-[state=open]:bg-[#1f1f1f] text-gray-200 hover:text-gray-200 hover:bg-[#1f1f1f] shadow-sm ${activeFileId === buttonId ? 'bg-[#1f1f1f]' : ''}`}
                     >
                         {buttonId}
                     </Button>
                 )}
             </div>
-            {/* 4. The editor now correctly displays the content for the activeFileId. */}
             <Editor
+                key={activeFileId}
                 className="h-full"
-                path={activeFile?.id}
-                defaultLanguage={activeFile?.language}
-                defaultValue={activeFile?.content}
+                path={activeFileId}
+                value={contentMap[activeFileId] ?? ''}
                 theme="vs-dark"
-                options={{readOnly: true}}
+                onMount={handleEditorMount}
+                onChange={handleEditorChange}
+                beforeMount={handleEditorWillMount}
+                options={{readOnly: activeFileId === "input" ? false : true}}
             />
         </Fragment>
     );
