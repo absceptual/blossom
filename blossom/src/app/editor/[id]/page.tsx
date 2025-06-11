@@ -39,7 +39,7 @@ export default function Page() {
         // TODO: Replace with dynamic username retrieval
         saveCode(params.id, code)
       }
-    }, 2000);
+    }, 500);
 
     return () => {
       clearTimeout(timer);
