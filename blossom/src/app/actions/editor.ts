@@ -24,7 +24,7 @@ export async function saveCode(problemName: string, code: string) {
     const session = await verifySession();
     if (!session) return "// User not authenticated";
 
-    const username: string = session?.username;
+    const username: string = session?.username as string;
     try {
         const filePath = path.join(dataDir + `/${problemName}/submissions/${username}.java`);
         fs.writeFile(filePath, code, 'utf8')
@@ -71,7 +71,7 @@ export async function getSavedCode(problemName: string) {
     console.log(session)
     if (!session) return "// User not authenticated";
 
-    const username: string = session?.username;
+    const username: string = session?.username as string;
     console.log("Fetching saved code for user:", username, "and problem:", problemName);
     try {
         const data = await fs.readFile(dataDir + `/${problemName}/submissions/${username}.java`);
@@ -89,7 +89,7 @@ export async function submitCustomTestcase(problemName: string, input: string) {
     const session = await verifySession();
     if (!session) return "// User not authenticated";
 
-    const username: string = session?.username;
+    const username: string = session?.username as string;
 
     const url = JUDGE_URL + "/submissions/?base64_encoded=true&wait=true";
     // Ensure the userName and problemName are valid strings
@@ -102,7 +102,7 @@ export async function submitCustomTestcase(problemName: string, input: string) {
         },
         body: JSON.stringify({
             language_id: 4, // Java
-            source_code: btoa(await getSavedCode(problemName, username)), // Base64 encode the code
+            source_code: btoa(await getSavedCode(problemName)), // Base64 encode the code
             stdin: btoa(input), // Base64 encode the input
         })
     };
@@ -121,7 +121,7 @@ export async function submitTestcase(problemName: string) {
     const session = await verifySession();
     if (!session) return "// User not authenticated";
 
-    const username: string = session?.username;
+    const username: string = session?.username as string;
     const url = JUDGE_URL + "/submissions/?base64_encoded=true&wait=true";
     
 
@@ -135,7 +135,7 @@ export async function submitTestcase(problemName: string) {
         },
         body: JSON.stringify({
             language_id: 4, // Java
-            source_code: btoa(await getSavedCode(problemName, username)), // Base64 encode the code
+            source_code: btoa(await getSavedCode(problemName)), // Base64 encode the code
             stdin: btoa( await getTestcaseInput(problemName)), // Base64 encode the input
             expected_output: btoa(await getTestcaseOutput(problemName)), // Base64 encode the expected output
         })
