@@ -23,7 +23,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-import { signup } from '@/app/actions/auth'
+import { signup, login } from '@/app/actions/auth'
 
 
 export function LoginForm({
@@ -40,13 +40,14 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form action={login}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-3">
                 <Label htmlFor="username">Username</Label>
                 <Input
                   id="username"
                   type="username"
+                  name="username"
                   placeholder="absceptual"
                   required
                 />
@@ -74,7 +75,7 @@ export function LoginForm({
                   </Dialog>
                   
                 </div>
-                <Input id="password" type="password" required />
+                <Input id="password" name="password" type="password" required />
               </div>
               <div className="flex flex-col gap-3">
                 <Button type="submit" className="w-full">
