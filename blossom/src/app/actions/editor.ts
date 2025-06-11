@@ -1,6 +1,5 @@
 'use server';
 
-import { promises as fs } from 'fs';
 import path from 'path';
 import { verifySession } from '@/app/lib/dal';
 
@@ -66,9 +65,13 @@ export async function getTestcaseOutput(problemName: string) {
     const session = await verifySession();
     if (!session) return "// User not authenticated";
 
+    const filePath = path.join(dataDir + `/${problemName}/sample.out`);
     try {
-        const data = await fs.readFile(dataDir + `/${problemName}/sample.out`);
-        return data.toString(); 
+        const blob = await head(filePath);
+        const response = await fetch(blob.url);
+        if (!response.ok)
+            throw new Error(`Failed to fetch file: ${response.statusText}`);
+        return await response.text();
     }
     catch (error) {
         console.error("Error reading file:", error);
