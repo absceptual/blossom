@@ -19,8 +19,6 @@ export interface SubmissionResult {
 }
 
 export async function saveCode(problemName: string, code: string) {
-
-    console.log("Saving code for problem:", problemName);
     const session = await verifySession();
     if (!session) return "// User not authenticated";
 
@@ -66,9 +64,7 @@ export async function getTestcaseOutput(problemName: string) {
 }
 
 export async function getSavedCode(problemName: string) {
-    console.log("Fetching saved code for problem:", problemName);
     const session = await verifySession();
-    console.log(session)
     if (!session) return "// User not authenticated";
 
     const username: string = session?.username as string;
@@ -149,5 +145,4 @@ export async function submitTestcase(problemName: string) {
     } catch (error) {
         console.error(error + " - Error during submission");
     }
-    console.log("Submission completed for user:", username, "and problem:", problemName);
 };
