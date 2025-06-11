@@ -26,7 +26,6 @@ export default async function middleware(req: NextRequest) {
   }
  
   // 5. Redirect to /dashboard if the user is authenticated
-  await updateSession();
   return NextResponse.next()
 }
  
