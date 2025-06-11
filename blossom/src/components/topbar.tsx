@@ -17,7 +17,7 @@ import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import { ChevronUpIcon } from '@heroicons/react/24/outline';
 import { PlayCircleIcon } from '@heroicons/react/24/solid';
 
-import { submitTestcase, submitCustomTestcase, SubmissionResult } from '@/app/editor/[id]/actions';
+import { submitTestcase, submitCustomTestcase, SubmissionResult } from '@/app/actions/editor';
 
 export default function Topbar({ 
   problemId, 
@@ -50,13 +50,13 @@ export default function Topbar({
  
   async function handleRunTestcase() {
     // TODO: Replace with dynamic username retrival
-    const result = await submitTestcase(problemId || "", "absceptual");
+    const result = await submitTestcase(problemId ?? "");
     onSubmissionComplete(result)
   }
 
   async function handleRunCustomTestcase() {
     // TODO: Replace with dynamic username retrival
-    const result = await submitCustomTestcase(problemId || "", "absceptual", customTestcase || "");
+    const result = await submitCustomTestcase(problemId ?? "", customTestcase ?? "");
     onSubmissionComplete(result)
   }
 

@@ -7,7 +7,7 @@ import Container from "@/components/container";
 
 import { useParams } from 'next/navigation'
 import { useState, useEffect } from "react";
-import { getSavedCode, getTestcaseInput, saveCode, SubmissionResult } from "@/app/editor/[id]/actions";
+import { getSavedCode, getTestcaseInput, saveCode, SubmissionResult } from "@/app/actions/editor";
 
 
 
@@ -25,7 +25,7 @@ export default function Page() {
   useEffect(() => {
     if (params.id) {
       // TODO: Replace with dynamic username retrieval
-      getSavedCode(params.id, "absceptual").then(setCode);
+      getSavedCode(params.id).then(setCode);
       getTestcaseInput(params.id).then(setInputContent);
     }
   }, [params.id]); // Re-run if the problem ID changes
@@ -37,7 +37,7 @@ export default function Page() {
     const timer = setTimeout(() => {
       if (params.id) {
         // TODO: Replace with dynamic username retrieval
-        saveCode(params.id, "absceptual", code)
+        saveCode(params.id, code)
       }
     }, 2000);
 
@@ -58,7 +58,7 @@ export default function Page() {
   };
 
   async function onSaveCode() {
-    const blob = new Blob([await getSavedCode(params.id, "absceptual")], { type: "text/plain" });
+    const blob = new Blob([await getSavedCode(params.id)], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
