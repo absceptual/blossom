@@ -78,6 +78,7 @@ export async function getSavedCode(problemName: string) {
         return data.toString();
     }
     catch (error) {
+        console.log("Error reading file:", error);
         const example = (await fs.readFile(dataDir + `/example`)).toString();
         await fs.writeFile(dataDir + `/${problemName}/submissions/${username}.java`, example);
         return example;
