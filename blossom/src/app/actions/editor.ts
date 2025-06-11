@@ -4,7 +4,8 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { verifySession } from '@/app/lib/dal';
 
-const dataDir = path.resolve(process.cwd(), 'data');
+import { put, head } from '@vercel/blob';
+const dataDir = "data"
 
 const JUDGE_URL = "https://judge0-extra-ce.p.rapidapi.com";
 
@@ -23,9 +24,17 @@ export async function saveCode(problemName: string, code: string) {
     if (!session) return "// User not authenticated";
 
     const username: string = session?.username as string;
+        const userSubmissionPath = `${dataDir}/${problemName}/submissions/${username}.java`;
     try {
-        const filePath = path.join(dataDir + `/${problemName}/submissions/${username}.java`);
-        fs.writeFile(filePath, code, 'utf8')
+        const blobResult = await put(userSubmissionPath, code, {
+            access: 'public', // Or 'private' if you handle signed URLs for reads
+            contentType: 'text/x-java-source; charset=utf-8', // Be specific with content type,
+            allowOverwrite: true, // Allow overwriting existing blobs
+            // Add any cache control headers if needed
+        });
+        console.log(`Code saved for user ${username} to blob: ${blobResult.url}`);
+        //const filePath = path.join(dataDir + `/${problemName}/submissions/${username}.java`);
+        //fs.writeFile(filePath, code, 'utf8')
     }
     catch (error) {
         console.error("Error writing file:", error);
@@ -39,9 +48,13 @@ export async function getTestcaseInput(problemName: string) {
     const session = await verifySession();
     if (!session) return "// User not authenticated";
     
+    const filePath = path.join(dataDir + `/${problemName}/sample.in`);
     try {  
-        const data = await fs.readFile(dataDir + `/${problemName}/sample.in`);
-        return data.toString();
+        const blob = await head(filePath);
+        const response = await fetch(blob.url);
+        if (!response.ok)
+            throw new Error(`Failed to fetch file: ${response.statusText}`);
+        return await response.text();
     }
     catch (error) {
         console.error("Error reading file:", error);
@@ -68,15 +81,42 @@ export async function getSavedCode(problemName: string) {
     if (!session) return "// User not authenticated";
 
     const username: string = session?.username as string;
+    const userSubmissionPath = `${dataDir}/${problemName}/submissions/${username}.java`;
+
     try {
-        const data = await fs.readFile(dataDir + `/${problemName}/submissions/${username}.java`);
-        return data.toString();
+        const userBlob = await head(userSubmissionPath); // Throws if not found
+        const response = await fetch(userBlob.url);
+        if (!response.ok) {
+            // This case might be rare if head succeeded, but good to check
+            throw new Error(`Failed to fetch user's code blob: ${response.statusText}`);
+        }
+        return await response.text();
     }
     catch (error) {
-        console.log("Error reading file:", error);
-        const example = (await fs.readFile(dataDir + `/example`)).toString();
-        await fs.writeFile(dataDir + `/${problemName}/submissions/${username}.java`, example);
-        return example;
+        // Assuming error means the user's submission blob was not found
+        console.log(`User's code at ${userSubmissionPath} not found or error fetching. Attempting to use example. Error: ${error.message}`);
+
+        try {
+            // Fetch the example code from its blob
+            const exampleBlob = await head("data/example"); // Throws if example not found
+            const exampleResponse = await fetch(exampleBlob.url);
+            if (!exampleResponse.ok) {
+                console.error(`Critical: Failed to fetch example code blob: ${exampleResponse.statusText}`);
+                return "// Error: Example code not available";
+            }
+            const exampleCode = await exampleResponse.text();
+
+            // Save this example code as the user's initial code in their blob path
+            await put(userSubmissionPath, "data/example", {
+                access: 'public',
+                contentType: 'text/x-java-source; charset=utf-8',
+            });
+            console.log(`Initialized ${userSubmissionPath} with example code for user ${username}.`);
+            return exampleCode;
+        } catch (exampleError) {
+            console.error(`Error processing example code for ${username} and problem ${problemName}: ${exampleError.message}`);
+            return "// Error loading or saving example code";
+        }
     }
 }
 
