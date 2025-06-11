@@ -68,7 +68,6 @@ export async function getSavedCode(problemName: string) {
     if (!session) return "// User not authenticated";
 
     const username: string = session?.username as string;
-    console.log("Fetching saved code for user:", username, "and problem:", problemName);
     try {
         const data = await fs.readFile(dataDir + `/${problemName}/submissions/${username}.java`);
         return data.toString();
