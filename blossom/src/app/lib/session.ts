@@ -29,10 +29,17 @@ export async function updateSession() {
     return null
   }
  
+  
   const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
- 
+  const newSession: SessionPayload = {
+    username: payload.username as string,
+    expiresAt: expires as Date,
+    permissions: payload.permissions as UserPermissions[],
+  };
+
+
   const cookieStore = await cookies()
-  cookieStore.set('session', session, {
+  cookieStore.set('session', await encrypt(newSession), {
     httpOnly: true,
     secure: false,
     expires: expires,

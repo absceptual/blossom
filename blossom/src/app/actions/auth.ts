@@ -1,5 +1,5 @@
 'use server'
-import { createSession, updateSession, deleteSession } from "@/app/lib/session"
+import { createSession, deleteSession } from "@/app/lib/session"
 import { redirect } from "next/navigation";
 
 import bcrypt from 'bcrypt';
@@ -7,8 +7,6 @@ import bcrypt from 'bcrypt';
 import { UserPermissions } from "@/app/lib/definitions";
 
 import postgres from 'postgres';
-import { hash } from "crypto";
-import { User } from "lucide-react";
 
 const sql = postgres(process.env.DATABASE_URL);
 
@@ -18,7 +16,6 @@ export async function logout() {
 }
 
 export async function signup(formData: FormData) {
-
     const HASH_ROUNDS = 10;
 
     let username = formData.get("username") as string;
@@ -69,9 +66,6 @@ export async function signup(formData: FormData) {
 
 
 export async function login(formData: FormData) {
-
-    const HASH_ROUNDS = 10;
-
     let username = formData.get("username") as string;
     username = username.toLowerCase().trim();
 

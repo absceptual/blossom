@@ -117,7 +117,6 @@ export async function submitTestcase(problemName: string) {
     const session = await verifySession();
     if (!session) return "// User not authenticated";
 
-    const username: string = session?.username as string;
     const url = JUDGE_URL + "/submissions/?base64_encoded=true&wait=true";
     
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { decrypt } from '@/app/lib/session'
+import { decrypt, updateSession } from '@/app/lib/session'
 import { cookies } from 'next/headers'
  
 
@@ -26,7 +26,7 @@ export default async function middleware(req: NextRequest) {
   }
  
   // 5. Redirect to /dashboard if the user is authenticated
-  
+  await updateSession();
   return NextResponse.next()
 }
  
