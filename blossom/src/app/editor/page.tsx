@@ -1,41 +1,62 @@
 'use client';
 
-import React, { Suspense } from "react";
-
-import Topbar from "@/components/topbar";
-import Container from "@/components/container";
-
+import React, { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from 'next/navigation'
-import { useState, useEffect } from "react";
-import { getSavedCode, getTestcaseInput, saveCode, SubmissionResult } from "@/app/actions/editor";
+import { getSavedCode, getTestcaseInput, saveCode } from "@/actions/editor";
+import Topbar from "@/components/editor/topbar";
+import Container from "@/components/editor/container";
+import PageSuspense from '@/components/shared/PageSuspense';
+import { EditorInfo } from "@/types/editor";
+
+const JAVA_BOILERPLATE = `import java.util.*;
+import java.io.*;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st;
+        
+        // Read input
+        // Example: int n = Integer.parseInt(br.readLine());
+        // Example: st = new StringTokenizer(br.readLine());
+        // Example: int a = Integer.parseInt(st.nextToken());
+        
+        // Your solution here
+        
+        // Output result
+        // System.out.println(result);
+    }
+}`;
 
 
 
-export default function Page() {
-  
-  // const params = useParams<{ id: string }>();
+function EditorInstance() {
   const searchParams = useSearchParams();
-
   const problemId = searchParams.get("id");
 
-  const [code, setCode] = useState("// Loading code...");
+  const [code, setCode] = useState<string>("// Loading code...");
+  const [codeLoaded, setCodeLoaded] = useState<boolean>(false);
+  const [activeFileId, setActiveFileId] = useState('input');
 
-  const [inputContent, setInputContent] = useState("1 2 3");
-  const [outputContent, setOutputContent] = useState("");
-  const [compilationContent, setCompilationContent] = useState("");
-  const [errorContent, setErrorContent] = useState("");
-
-
+  const [inputContent, setInputContent] = useState<string>("");
+  const [outputContent, setOutputContent] = useState<string>("");
+  const [compilationContent, setCompilationContent] = useState<string>("");
+  const [errorContent, setErrorContent] = useState<string>("");
+  
   useEffect(() => {
-    console.log("Problem ID:", problemId);
     if (problemId) {
+      console.log("Loading code for problem ID:", problemId);
       getSavedCode(problemId).then(setCode);
       getTestcaseInput(problemId).then(setInputContent);
+      setCodeLoaded(true);
+    }
+    else {
+      setCode(JAVA_BOILERPLATE)
     }
   }, [problemId]); // Re-run if the problem ID changes
 
   useEffect(() => {
-    if ( code === "// Loading code...") 
+    if ( !codeLoaded ) 
       return; 
 
     const timer = setTimeout(() => {
@@ -48,61 +69,39 @@ export default function Page() {
     return () => {
       clearTimeout(timer);
     }
-  }, [code, problemId]); // Re-run if code or problem ID changes
+  }, [code, problemId, codeLoaded]); // Re-run if code or problem ID changes
   // This function will be called by the Topbar after the submission
 
-  function handleSubmissionComplete(result: SubmissionResult)  {
-    if (!result) {
-      setCompilationContent("An unknown error occurred during submission.");
-      return;
-    }
-    setOutputContent( atob(result.stdout || "")); // Decode from base64
-    setCompilationContent(result.compile_output ? atob(result.compile_output) : (result.status?.description ?? "No compilation output available."));
-    setErrorContent(atob(result.stderr || ""));
+  const editorInfo: EditorInfo = {
+    code: { content: code, updater: setCode },
+    input: { content: inputContent, updater: setInputContent },
+    output: { content: outputContent, updater: setOutputContent },
+    compilation: { content: compilationContent, updater: setCompilationContent },
+    error: { content: errorContent, updater: setErrorContent },
+    codeLoaded: true,
+    setActiveFileId: setActiveFileId,
+    activeFileId: activeFileId
   };
 
-  async function onSaveCode() {
-    const blob = new Blob([await getSavedCode(problemId)], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${problemId}.java`
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
-  async function onOpenCode(file: Blob) {
-    const text = await file.text();
-    setCode(text);
-  }
-
-  async function onOpenInput(file: Blob) {
-    const text = await file.text();
-    setInputContent(text);
-  }
-
+  
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen text-white">Loading...</div>}>
     <div className="flex h-screen bg-neutral-800 flex-col">
-          {/* Pass the handler function down to Topbar */}
-          <Topbar problemId={problemId} customTestcase={inputContent} onSubmissionComplete={handleSubmissionComplete} onOpenInput={onOpenInput} onOpenCode={onOpenCode} onSaveCode={onSaveCode} />
+          <Topbar
+            editorInfo={editorInfo}
+            problemId={problemId} 
+          />
           <div className="w-py-10"></div>
-          {/* Pass all the states down to Container */}
           <Container
-            code={code}
+            editorInfo={editorInfo}
             problemId={problemId}
-            onCodeChange={setCode}
-            inputContent={inputContent}
-            outputContent={outputContent}
-            compilationContent={compilationContent}
-            errorContent={errorContent}
-            setInputContent={setInputContent}
-            onDownloadCode={onSaveCode}
           />
       </div>
+  )
+}
+export default function Page() {
+  return (
+    <Suspense fallback={PageSuspense()}>
+      <EditorInstance />
     </Suspense>
-    
   );
 }

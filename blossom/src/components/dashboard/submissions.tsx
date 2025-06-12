@@ -1,23 +1,25 @@
 "use client"
 
-import { CardFooter } from "@/components/ui/card"
-
-import { TrendingUp } from "lucide-react"
 import { Pie, PieChart } from "recharts"
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+
+// Realistic UIL completion data
+// UIL has ~12 problems per level, with difficulty increasing significantly
+// Invitational: Easier problems, more completions
+// District: Moderate difficulty 
+// Region: Hard problems, fewer completions
+// State: Very hard problems, very few completions
 const chartData = [
-  { conference: "invitational", submissions: 275, fill: "#f4f4f4" },
-  { conference: "district", submissions: 200, fill: "#e7a2c2" },
-  { conference: "region", submissions: 187, fill: "#ea78ab" },
-  { conference: "state", submissions: 173, fill: "#e45093" },
-  { conference: "other", submissions: 90, fill: "#e42079" },
+  { conference: "invitational", submissions: 47, fill: "#f4f4f4" }, // ~47/96 invitational problems (49%)
+  { conference: "district", submissions: 23, fill: "#e7a2c2" },     // ~23/72 district problems (32%)
+  { conference: "region", submissions: 8, fill: "#ea78ab" },        // ~8/60 region problems (13%)
+  { conference: "state", submissions: 2, fill: "#e45093" },         // ~2/48 state problems (4%)
 ]
 
 const chartConfig = {
   submissions: {
-    label: "Submissions", // Changed from "Visitors"
+    label: "Problems Solved",
   },
   invitational: {
     label: "Invitational",
@@ -36,22 +38,26 @@ const chartConfig = {
     color: "#e45093",
   },
   other: {
-    label: "Other",
+    label: "Practice/Other",
     color: "#e42079",
   },
 } satisfies ChartConfig
 
 export default function Component() {
+  const totalSolved = chartData.reduce((sum, item) => sum + item.submissions, 0);
+
   return (
     <Card className="flex flex-col h-full">
       <CardHeader className="items-center pb-0">
-        <CardTitle>Total Completed Problems</CardTitle>
-        <CardDescription>All Time</CardDescription>
+        <CardTitle>UIL Problems Completed</CardTitle>
+        <CardDescription>Total: {totalSolved} problems solved</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
         <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[250px] px-0">
           <PieChart>
-            <ChartTooltip content={<ChartTooltipContent />} />
+            <ChartTooltip 
+              content={<ChartTooltipContent />} 
+            />
             <Pie
               data={chartData}
               dataKey="submissions"
@@ -66,6 +72,7 @@ export default function Component() {
                     textAnchor={props.textAnchor}
                     dominantBaseline={props.dominantBaseline}
                     fill="hsla(var(--foreground))"
+                    fontSize="12"
                   >
                     {payload.submissions}
                   </text>

@@ -79,12 +79,11 @@ import {
     CodeBracketSquareIcon,
 } from "@heroicons/react/24/outline";
 import { cookies } from 'next/headers';
-import { decrypt } from '@/app/lib/session';
-import { hasPermission } from '@/app/lib/util';
-import { SessionPayload, UserPermissions } from '@/app/lib/definitions';
+import { decrypt } from '@/lib/session';
+import { hasPermission } from '@/lib/utilities';
+import { SessionPayload, UserPermissions } from '@/lib/types';
 
-import User from '@/components/user';
-
+import User from '@/components/dashboard/user';
 
 function SidebarGroupWrapper({ name, menus, permissions }) {
     return (

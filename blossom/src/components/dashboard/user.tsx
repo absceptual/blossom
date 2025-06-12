@@ -5,9 +5,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ChevronDownIcon, ChevronUpIcon, UserIcon } from "lucide-react";
 import { useState } from "react";
 import { SidebarMenuButton } from '@/components/ui/sidebar';
-import { UserPermissions } from "@/app/lib/definitions";
+import { UserPermissions } from "@/lib/types";
 
-import { logout } from "@/app/actions/auth";
+import { logout } from "@/actions/auth";
 
 function getUserRole(permissions) {
     return permissions.includes(UserPermissions.MANAGEMENT_ACCESS) ? 'Administrator' : 'User';

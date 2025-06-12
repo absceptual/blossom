@@ -1,4 +1,4 @@
-import { UserPermissions  } from "@/app/lib/definitions";
+import { UserPermissions } from "@/lib/types";
 
 export function hasPermission(current: UserPermissions[], requested: UserPermissions[]): boolean {
     if (requested.length === 0) 

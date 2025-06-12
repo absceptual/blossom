@@ -23,7 +23,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-import { signup, login } from '@/app/actions/auth'
+import { signup, login } from '@/actions/auth'
 
 
 export function LoginForm({

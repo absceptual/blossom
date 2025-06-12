@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers'
 import { SignJWT, jwtVerify } from 'jose'
-import { SessionPayload, UserPermissions } from '@/app/lib/definitions'
+import { SessionPayload, UserPermissions } from '@/lib/types'
  
 const secretKey = process.env.SESSION_SECRET
 const encodedKey = new TextEncoder().encode(secretKey)

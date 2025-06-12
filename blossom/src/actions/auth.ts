@@ -1,10 +1,10 @@
 'use server'
-import { createSession, deleteSession } from "@/app/lib/session"
+import { createSession, deleteSession } from "@/lib/session"
 import { redirect } from "next/navigation";
 
 import bcrypt from 'bcrypt';
 
-import { UserPermissions } from "@/app/lib/definitions";
+import { UserPermissions } from "@/lib/types";
 
 import postgres from 'postgres';
 

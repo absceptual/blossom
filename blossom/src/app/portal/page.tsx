@@ -1,9 +1,9 @@
 'use client'
 
-import { LoginForm, RegisterForm } from "@/components/login-form"
-
-import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { LoginForm, RegisterForm } from "@/components/portal/login-form"
+import PageSuspense from '@/components/shared/PageSuspense';
 
 function PortalContent() {
     const searchParams = useSearchParams();
@@ -12,12 +12,11 @@ function PortalContent() {
     return isLogin ? <LoginForm /> : <RegisterForm />;
 }
 
-
 export default function Page() {
     return (
         <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
             <div className="w-full max-w-sm">    
-                <Suspense fallback={<div>Loading...</div>}> {/* Or any other loading UI */}
+                <Suspense fallback={PageSuspense()}>
                     <PortalContent />
                 </Suspense>
             </div>

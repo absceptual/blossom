@@ -1,21 +1,16 @@
 'use server';
 
-import { verifySession } from '@/app/lib/dal';
-
+import { verifySession } from '@/lib/dal';
 import { put, head } from '@vercel/blob';
+
 const dataDir = "data"
 
 const JUDGE_URL = "https://judge0-extra-ce.p.rapidapi.com";
-
-export interface SubmissionResult {
-  compile_output?: string;
-  status: {
-    id: number;
-    description: string;
-  };
-  stdout?: string;
-  stderr?: string;
+const JUDGE_HEADERS = {
+    'X-Auth-Token': process.env.JUDGE_API_KEY || "",
+    'Content-Type': 'application/json'
 }
+
 
 export async function saveCode(problemName: string, code: string) {
     const session = await verifySession();
@@ -39,9 +34,6 @@ export async function saveCode(problemName: string, code: string) {
         return "// Error writing file";
     }
 } 
-
-
-
 export async function getTestcaseInput(problemName: string) {
     const session = await verifySession();
     if (!session) return "// User not authenticated";
@@ -78,16 +70,20 @@ export async function getTestcaseOutput(problemName: string) {
     }
 }
 
+
+
 export async function getSavedCode(problemName: string) {
     const session = await verifySession();
     if (!session) return "// User not authenticated";
 
     const username: string = session?.username as string;
-    const userSubmissionPath = `${dataDir}/${problemName}/submissions/${username}.java`;
+    console.log("ich san bull")
+    const userSubmissionPath =  "data/" + problemName + "/submissions/" + username + ".java";
 
     try {
         const userBlob = await head(userSubmissionPath); // Throws if not found
         const response = await fetch(userBlob.url);
+        console.log(`Fetching user's code from blob: ${userBlob.url}`);
         if (!response.ok) {
             // This case might be rare if head succeeded, but good to check
             throw new Error(`Failed to fetch user's code blob: ${response.statusText}`);
@@ -186,3 +182,35 @@ export async function submitTestcase(problemName: string) {
         console.error(error + " - Error during submission");
     }
 };
+
+export async function submitJudge(problemName: string) {
+
+}
+
+export async function submitLocal(problemName: string, code: string, input: string) {
+    const session = await verifySession();
+    if (!session) return "// User not authenticated";
+
+    const url = JUDGE_URL + "/submissions/?base64_encoded=true&wait=true";
+    const options = {
+        method: 'POST',
+        headers: {
+            'x-rapidapi-key': process.env.JUDGE_API_KEY || "",
+            'x-rapidapi-host': "judge0-extra-ce.p.rapidapi.com",
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            language_id: 4, // Java
+            source_code: btoa(code), // Base64 encode the code
+            stdin: btoa(input), // Base64 encode the input
+        })
+    };
+
+    try {
+        const response = await fetch(url, options);
+        const result = await response.json();
+        return result;
+    } catch (error) {
+        console.error(error + " - Error during submission");
+    }
+}

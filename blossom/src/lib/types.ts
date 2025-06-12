@@ -5,6 +5,7 @@ export enum UserPermissions {
     MANAGEMENT_ACCESS = 3,
 }
 
+
 export type SessionPayload = {
     username: string;
     expiresAt: Date;
