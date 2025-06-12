@@ -1,6 +1,6 @@
 'use client';
 
-import React from "react";
+import React, { Suspense } from "react";
 
 import Topbar from "@/components/topbar";
 import Container from "@/components/container";
@@ -84,22 +84,25 @@ export default function Page() {
   }
 
   return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen text-white">Loading...</div>}>
     <div className="flex h-screen bg-neutral-800 flex-col">
-      {/* Pass the handler function down to Topbar */}
-      <Topbar problemId={problemId} customTestcase={inputContent} onSubmissionComplete={handleSubmissionComplete} onOpenInput={onOpenInput} onOpenCode={onOpenCode} onSaveCode={onSaveCode} />
-      <div className="w-py-10"></div>
-      {/* Pass all the states down to Container */}
-      <Container
-        code={code}
-        problemId={problemId}
-        onCodeChange={setCode}
-        inputContent={inputContent}
-        outputContent={outputContent}
-        compilationContent={compilationContent}
-        errorContent={errorContent}
-        setInputContent={setInputContent}
-        onDownloadCode={onSaveCode}
-      />
-    </div>
+          {/* Pass the handler function down to Topbar */}
+          <Topbar problemId={problemId} customTestcase={inputContent} onSubmissionComplete={handleSubmissionComplete} onOpenInput={onOpenInput} onOpenCode={onOpenCode} onSaveCode={onSaveCode} />
+          <div className="w-py-10"></div>
+          {/* Pass all the states down to Container */}
+          <Container
+            code={code}
+            problemId={problemId}
+            onCodeChange={setCode}
+            inputContent={inputContent}
+            outputContent={outputContent}
+            compilationContent={compilationContent}
+            errorContent={errorContent}
+            setInputContent={setInputContent}
+            onDownloadCode={onSaveCode}
+          />
+      </div>
+    </Suspense>
+    
   );
 }
