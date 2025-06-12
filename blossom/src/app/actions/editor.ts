@@ -1,6 +1,5 @@
 'use server';
 
-import path from 'path';
 import { verifySession } from '@/app/lib/dal';
 
 import { put, head } from '@vercel/blob';
@@ -47,7 +46,7 @@ export async function getTestcaseInput(problemName: string) {
     const session = await verifySession();
     if (!session) return "// User not authenticated";
     
-    const filePath = path.join(dataDir + `/${problemName}/sample.in`);
+    const filePath = `${dataDir}/${problemName}/sample.in`;
     try {  
         const blob = await head(filePath);
         const response = await fetch(blob.url);
@@ -65,7 +64,7 @@ export async function getTestcaseOutput(problemName: string) {
     const session = await verifySession();
     if (!session) return "// User not authenticated";
 
-    const filePath = path.join(dataDir + `/${problemName}/sample.out`);
+    const filePath = `${dataDir}/${problemName}/sample.out`;
     try {
         const blob = await head(filePath);
         const response = await fetch(blob.url);
@@ -110,7 +109,7 @@ export async function getSavedCode(problemName: string) {
             const exampleCode = await exampleResponse.text();
 
             // Save this example code as the user's initial code in their blob path
-            await put(userSubmissionPath, "data/example", {
+            await put(userSubmissionPath, exampleCode, {
                 access: 'public',
                 contentType: 'text/x-java-source; charset=utf-8',
             });
