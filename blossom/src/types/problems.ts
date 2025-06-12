@@ -12,6 +12,7 @@ export interface Submission {
   problem: string;
   difficulty: 'Invitational A' | 'Invitational B' | 'District' | 'Region' | 'State';
   year: number;
-  status: 'Accepted' | 'Wrong Answer' | 'Time Limit' | 'Runtime Error';
+  status: 'Accepted' | 'Wrong Answer' | 'Time Limit' | 'Runtime Error' | 'Compilation Error';
   time: string;
+  user: string;
 }

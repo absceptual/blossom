@@ -1,9 +1,8 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { PlusIcon, PlayIcon, ClockIcon } from "@heroicons/react/24/outline";
-import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from "@radix-ui/react-dialog";
+import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
@@ -11,11 +10,15 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import * as React from "react"
+import { Combobox } from "../ui/combobox";
+import { redirect } from "next/navigation";
+
 
 // Realistic UIL problem names (first names) with years - removed practice/other entries
 const startedProblems = [
-  { id: "hanika", name: "Hanika", difficulty: "District", year: 2023, lastWorked: "2 hours ago" },
-  { id: "anisha", name: "Anisha", difficulty: "Invitational B", year: 2024, lastWorked: "1 day ago" },
+  { id: "hanika", name: "Hanika", difficulty: "District", year: 2025, lastWorked: "2 hours ago" },
+  { id: "anisha", name: "Anisha", difficulty: "Invitational A", year: 2025, lastWorked: "1 day ago" },
   { id: "elena", name: "Elena", difficulty: "Region", year: 2022, lastWorked: "3 days ago" },
   { id: "marcus", name: "Marcus", difficulty: "State", year: 2021, lastWorked: "1 week ago" },
   { id: "sophia", name: "Sophia", difficulty: "District", year: 2024, lastWorked: "2 weeks ago" },
@@ -28,11 +31,67 @@ const startedProblems = [
   { id: "oscar", name: "Oscar", difficulty: "Invitational A", year: 2023, lastWorked: "3 months ago" },
 ];
 
+
+const frameworks = [
+  {
+    value: "invitational-a",
+    label: "Invitational A"
+  },
+  {
+    value: "invitational-b",
+    label: "Invitational B",
+  },
+  {
+    value: "district",
+    label: "District",
+  },
+  {
+    value: "region",
+    label: "Region",
+  },
+  {
+    value: "state",
+    label: "State",
+  },
+  {
+    value: "other",
+    label: "Other",
+  }
+]
+
+const years = [
+  { value: "2025", label: "2025" },
+  { value: "2024", label: "2024" },
+  { value: "2023", label: "2023" },
+  { value: "2022", label: "2022" },
+  { value: "2021", label: "2021" },
+  { value: "2020", label: "2020" },
+  { value: "2019", label: "2019" },
+  { value: "2018", label: "2018" },
+  { value: "2017", label: "2017" },
+  { value: "2016", label: "2016" },
+  { value: "2015", label: "2015" },
+]
+
+const problems = [
+  { value: "alberto", label: "Alberto" },
+  { value: "anisha", label: "Anisha" },
+  { value: "danielle", label: "Danielle" },
+  { value: "dominik", label: "Dominik" },
+  { value: "filip", label: "Filip" },
+  { value: "helen", label: "Helen" },
+  { value: "jason", label: "Jason" },
+  { value: "juliana", label: "Juliana" },
+  { value: "ksenyia", label: "Ksenyia" },
+  { value: "martyn", label: "Martyn" },
+  { value: "prachi", label: "Prachi" },
+  { value: "valery", label: "Valery" }
+]
 export default function QuickLaunch() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [newProblemName, setNewProblemName] = useState("");
-  const [newProblemDifficulty, setNewProblemDifficulty] = useState("");
-  const [newProblemYear, setNewProblemYear] = useState("");
+   const [level, setLevel] = React.useState("")
+  const [year, setYear] = React.useState("")
+  const [problem, setProblem] = React.useState("")
 
   const getDifficultyColor = (difficulty) => {
     const colors = {
@@ -46,21 +105,10 @@ export default function QuickLaunch() {
   };
 
   const handleCreateProblem = () => {
-    console.log("Creating problem:", { 
-      name: newProblemName, 
-      difficulty: newProblemDifficulty,
-      year: newProblemYear 
-    });
-    
-    setNewProblemName("");
-    setNewProblemDifficulty("");
-    setNewProblemYear("");
-    setIsCreateDialogOpen(false);
+    redirect(`/editor?id=${problem}`)
   };
 
   // Generate year options (UIL has been around since the 1960s, but computer science started later)
-  const currentYear = new Date().getFullYear();
-  const yearOptions = Array.from({ length: currentYear - 2009 }, (_, i) => currentYear - i);
 
   return (
     <Card className="w-full">
@@ -84,50 +132,23 @@ export default function QuickLaunch() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>Create New UIL Problem</DialogTitle>
+                <DialogTitle>Start a new UIL Problem</DialogTitle>
                 <DialogDescription>
-                  Start working on a new UIL Computer Science problem. Choose a name, difficulty level, and year.
+                  Choose a competition level, year, and problem name to begin.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="problem-name">Problem Name</Label>
-                  <Input
-                    id="problem-name"
-                    placeholder="Enter problem name (e.g., Sarah, Michael)..."
-                    value={newProblemName}
-                    onChange={(e) => setNewProblemName(e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="difficulty">Competition Level</Label>
-                  <select
-                    id="difficulty"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    value={newProblemDifficulty}
-                    onChange={(e) => setNewProblemDifficulty(e.target.value)}
-                  >
-                    <option value="">Select difficulty...</option>
-                    <option value="Invitational A">Invitational A</option>
-                    <option value="Invitational B">Invitational B</option>
-                    <option value="District">District</option>
-                    <option value="Region">Region</option>
-                    <option value="State">State</option>
-                  </select>
+                  <Label htmlFor="competiton-level">Competition Level</Label>
+                  <Combobox disabled={false} value={level} setValue={setLevel} searchPlaceholder="Search competition level..." selectPlaceholder="Select competition level..." emptyPlaceholder="No competition levels found" options={frameworks} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="year">UIL Year</Label>
-                  <select
-                    id="year"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    value={newProblemYear}
-                    onChange={(e) => setNewProblemYear(e.target.value)}
-                  >
-                    <option value="">Select year...</option>
-                    {yearOptions.map(year => (
-                      <option key={year} value={year}>{year}</option>
-                    ))}
-                  </select>
+                  <Combobox disabled={level === ""} value={year} setValue={setYear} searchPlaceholder="Search UIL year..." selectPlaceholder="Select UIL year..." emptyPlaceholder="No UIL year found" options={years} />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="problem-name">Problem Name</Label>
+                  <Combobox disabled={year === ""} value={problem} setValue={setProblem} searchPlaceholder="Search problem name..." selectPlaceholder="Select problem name..." emptyPlaceholder="No problems found" options={problems} />
                 </div>
               </div>
               <DialogFooter>
@@ -139,9 +160,9 @@ export default function QuickLaunch() {
                 </Button>
                 <Button
                   onClick={handleCreateProblem}
-                  disabled={!newProblemName || !newProblemDifficulty || !newProblemYear}
+                  disabled={!level || !year || !problem}
                 >
-                  Create & Start
+                  Start
                 </Button>
               </DialogFooter>
             </DialogContent>

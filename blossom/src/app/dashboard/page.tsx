@@ -1,235 +1,19 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
-
 import { verifySession } from "@/lib/dal"
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
-import Component from "@/components/dashboard/submissions";
+import Component from "@/components/dashboard/submissions-chart";
 import QuickLaunch from "@/components/dashboard/quickLaunch";
+import { SubmissionsCard } from "@/components/dashboard/submissions-card";
 
-// Only top 5 recent submissions
 const submissions = [
-    { id: "hanika", problem: "Hanika", status: "Accepted", time: "2 hours ago", difficulty: "District", year: 2023 },
-    { id: "anisha", problem: "Anisha", status: "Accepted", time: "4 hours ago", difficulty: "Invitational B", year: 2024 },
-    { id: "elena", problem: "Elena", status: "Wrong Answer", time: "6 hours ago", difficulty: "Region", year: 2022 },
-    { id: "marcus", problem: "Marcus", status: "Runtime Error", time: "1 day ago", difficulty: "State", year: 2021 },
-    { id: "sophia", problem: "Sophia", status: "Compilation Error", time: "2 days ago", difficulty: "District", year: 2024 }
+    { id: "hanika", problem: "Hanika", status: "Accepted", time: "2 hours ago", difficulty: "District", year: 2023, user: "absceptual" },
+    { id: "anisha", problem: "Anisha", status: "Accepted", time: "4 hours ago", difficulty: "Invitational B", year: 2024, user: "allievo_429" },
+    { id: "elena", problem: "Elena", status: "Wrong Answer", time: "6 hours ago", difficulty: "Region", year: 2022, user: "mind_numbing" },
+    { id: "marcus", problem: "Marcus", status: "Runtime Error", time: "1 day ago", difficulty: "State", year: 2021, user: "myaltaccountsthis" },
+    { id: "sophia", problem: "Sophia", status: "Compilation Error", time: "2 days ago", difficulty: "District", year: 2024, user: "yoyoy" }
 ];
-
-function RecentSubmissionsCard({ title, description, submissions}) {
-    const getStatusBadge = (status) => {
-        const variants = {
-            "Accepted": "default",
-            "Wrong Answer": "destructive", 
-            "Time Limit": "secondary",
-            "Runtime Error": "destructive",
-            "Compilation Error": "destructive"
-        };
-        return <Badge variant={variants[status] || "outline"}>{status}</Badge>;
-    };
-
-    const getDifficultyColor = (difficulty) => {
-        const colors = {
-            "Invitational A": "text-neutral-700",
-            "Invitational B": "text-[#e7a2c2]",
-            "District": "text-[#ea78ab]",
-            "Region": "text-[#e45093]",
-            "State": "text-[#e42079]",
-            "Other": "text-neutral-700",
-        };
-        return colors[difficulty] || "text-gray-600";
-    };
-
-    return (
-        <Card className="flex-1 min-w-0 flex flex-col">
-            <CardHeader>
-                <CardTitle>{title}</CardTitle>
-                <CardDescription>
-                    {description}
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                    {submissions.map((submission) => (
-                        <div key={submission.id} className="flex items-center">
-                            <div className="flex items-center space-x-4 flex-1">
-                                <div className="space-y-1">
-                                    <Link href={`/editor/?id=${submission.id}`} className="text-sm font-semibold hover:underline">
-                                        {submission.problem}
-                                    </Link>
-                                    <p className={`text-xs ${getDifficultyColor(submission.difficulty)}`}>
-                                        {submission.difficulty}, {submission.year}
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex items-center space-x-2 ml-10 justify-end">
-                                <div className="flex justify-end">
-                                    <Dialog>
-                                        <DialogTrigger className="hover:cursor-pointer" asChild>
-                                            {getStatusBadge(submission.status)}
-                                        </DialogTrigger>
-                                        <DialogContent className="sm:max-w-[425px]">
-                                            <DialogHeader>
-                                                <DialogTitle>Submission Details</DialogTitle>
-                                                <DialogDescription>
-                                                    View details about this submission.
-                                                </DialogDescription>
-                                            </DialogHeader>
-                                            <div className="grid gap-4 py-4">
-                                                <div className="grid gap-2">
-                                                    <Label>Problem</Label>
-                                                    <div className="text-sm font-medium">{submission.problem}</div>
-                                                </div>
-                                                <div className="grid gap-2">
-                                                    <Label>Competition</Label>
-                                                    <div className="text-sm">{submission.difficulty}, {submission.year}</div>
-                                                </div>
-                                                <div className="grid gap-2">
-                                                    <Label>Status</Label>
-                                                    <div className="text-sm">{getStatusBadge(submission.status)}</div>
-                                                </div>
-                                                <div className="grid gap-2">
-                                                    <Label>Submitted</Label>
-                                                    <div className="text-sm text-muted-foreground">{submission.time}</div>
-                                                </div>
-                                            </div>
-                                            <DialogFooter>
-                                                <DialogClose asChild>
-                                                    <Button variant="outline">Close</Button>
-                                                </DialogClose>
-                                                <Button asChild>
-                                                    <Link href={`/editor/?id=${submission.id}`}>
-                                                        Open in Editor
-                                                    </Link>
-                                                </Button>
-                                            </DialogFooter>
-                                        </DialogContent>
-                                    </Dialog>
-                                </div>
-                                <div className="w-20 text-xs text-muted-foreground">
-                                    {submission.time}
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
-
-function GlobalSubmissionsCard({ title, description, submissions}) {
-    const getStatusBadge = (status) => {
-        const variants = {
-            "Accepted": "default",
-            "Wrong Answer": "destructive", 
-            "Time Limit": "secondary",
-            "Runtime Error": "destructive",
-            "Compilation Error": "destructive"
-        };
-        return <Badge variant={variants[status] || "outline"}>{status}</Badge>;
-    };
-
-    const getDifficultyColor = (difficulty) => {
-        const colors = {
-            "Invitational A": "text-neutral-700",
-            "Invitational B": "text-[#e7a2c2]",
-            "District": "text-[#ea78ab]",
-            "Region": "text-[#e45093]",
-            "State": "text-[#e42079]",
-            "Other": "text-neutral-700",
-        };
-        return colors[difficulty] || "text-gray-600";
-    };
-
-    const users = ["absceptual", "codemaster", "algoking", "debugger42", "syntaxhero"];
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{title}</CardTitle>
-                <CardDescription>
-                    {description}
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4 ">
-                    {submissions.map((submission, index) => (
-                        <div key={submission.id} className="flex items-center">
-                            <div className="flex items-center space-x-4 flex-1 ">
-                                {/* Fixed width for username to align submissions */}
-                                <div className="w-20">
-                                    <span className="text-muted-foreground text-sm">
-                                        {users[index % users.length]}
-                                    </span>
-                                </div>
-                                <div className="space-y-1">
-                                    <Link href={`/editor/?id=${submission.id}`} className="text-sm font-semibold hover:underline">
-                                        {submission.problem}
-                                    </Link>
-                                    <p className={`text-xs ${getDifficultyColor(submission.difficulty)}`}>
-                                        {submission.difficulty}, {submission.year}
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex items-center space-x-2 ml-10 justify-end">
-                                <div className="flex justify-end">
-                                    <Dialog>
-                                        <DialogTrigger className="hover:cursor-pointer" asChild>
-                                            {getStatusBadge(submission.status)}
-                                        </DialogTrigger>
-                                        <DialogContent className="sm:max-w-[425px]">
-                                            <DialogHeader>
-                                                <DialogTitle>Submission Details</DialogTitle>
-                                                <DialogDescription>
-                                                    View details about this submission.
-                                                </DialogDescription>
-                                            </DialogHeader>
-                                            <div className="grid gap-4 py-4">
-                                                <div className="grid gap-2">
-                                                    <Label>Problem</Label>
-                                                    <div className="text-sm font-medium">{submission.problem}</div>
-                                                </div>
-                                                <div className="grid gap-2">
-                                                    <Label>Competition</Label>
-                                                    <div className="text-sm">{submission.difficulty}, {submission.year}</div>
-                                                </div>
-                                                <div className="grid gap-2">
-                                                    <Label>Status</Label>
-                                                    <div className="text-sm">{getStatusBadge(submission.status)}</div>
-                                                </div>
-                                                <div className="grid gap-2">
-                                                    <Label>Submitted</Label>
-                                                    <div className="text-sm text-muted-foreground">{submission.time}</div>
-                                                </div>
-                                            </div>
-                                        </DialogContent>
-                                    </Dialog>
-                                </div>
-                                <div className="w-20 text-xs text-muted-foreground">
-                                    {submission.time}
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
 
 export default async function Dashboard() {
     const session = await verifySession();
@@ -242,14 +26,14 @@ export default async function Dashboard() {
             {/* Top section with constrained width */}
             <div className="grid grid-cols-4 gap-6 p-4 md:p-8 pt-6">
                 <div className="col-span-3">
-                    <RecentSubmissionsCard title="Your Recent Submissions" description="Your recently submitted problems." submissions={submissions} />
+                    <SubmissionsCard title="Your Recent Submissions" description="Your recently submitted problems." submissions={submissions} showUser={false} />
                 </div>
                 <div className="col-span-1"><Component /></div>
             </div>
             {/* Bottom section full width */}
             <div className="w-screen grid grid-cols-4 py-6 items-stretch">
                 <div className="col-span-2 px-2 md:px-8">
-                    <GlobalSubmissionsCard title="Site Recent Submissions" description="Site recently submitted problems." submissions={submissions} />
+                    <SubmissionsCard title="Site Recent Submissions" description="Site recently submitted problems." submissions={submissions} />
                 </div>
 
                 <div className="col-span-2 px-4 md:px-8">

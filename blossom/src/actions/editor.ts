@@ -6,11 +6,12 @@ import { put, head } from '@vercel/blob';
 const dataDir = "data"
 
 const JUDGE_URL = "https://judge0-extra-ce.p.rapidapi.com";
+/*
 const JUDGE_HEADERS = {
     'X-Auth-Token': process.env.JUDGE_API_KEY || "",
     'Content-Type': 'application/json'
 }
-
+*/
 
 export async function saveCode(problemName: string, code: string) {
     const session = await verifySession();
@@ -184,7 +185,10 @@ export async function submitTestcase(problemName: string) {
 };
 
 export async function submitJudge(problemName: string) {
-
+    console.log(problemName);
+    const response = await fetch("", {});
+    const result = await response.json();
+    return result
 }
 
 export async function submitLocal(problemName: string, code: string, input: string) {

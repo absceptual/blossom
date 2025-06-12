@@ -1,3 +1,9 @@
+import { cookies } from 'next/headers';
+import { decrypt } from '@/lib/session';
+import { hasPermission } from '@/lib/utilities';
+import { SessionPayload, UserPermissions } from '@/lib/types';
+import User from '@/components/dashboard/user';
+
 import { 
     Sidebar, 
     SidebarContent,
@@ -10,6 +16,17 @@ import {
     SidebarHeader,
     SidebarFooter,
 } from '@/components/ui/sidebar';
+
+import { 
+    HomeIcon, 
+    ChartBarIcon, 
+    CodeBracketIcon, 
+    Cog6ToothIcon, 
+    ServerStackIcon,
+    UserGroupIcon,
+    ClipboardIcon,
+    CodeBracketSquareIcon,
+} from "@heroicons/react/24/outline";
 
 
 const general = [
@@ -66,25 +83,6 @@ const serverManagement = [
     },
 ]
 
-
-
-import { 
-    HomeIcon, 
-    ChartBarIcon, 
-    CodeBracketIcon, 
-    Cog6ToothIcon, 
-    ServerStackIcon,
-    UserGroupIcon,
-    ClipboardIcon,
-    CodeBracketSquareIcon,
-} from "@heroicons/react/24/outline";
-import { cookies } from 'next/headers';
-import { decrypt } from '@/lib/session';
-import { hasPermission } from '@/lib/utilities';
-import { SessionPayload, UserPermissions } from '@/lib/types';
-
-import User from '@/components/dashboard/user';
-
 function SidebarGroupWrapper({ name, menus, permissions }) {
     return (
         <SidebarGroup>
@@ -109,21 +107,14 @@ function SidebarGroupWrapper({ name, menus, permissions }) {
     )
 }
 
-
 export async function AppSidebar() {
-    
     const cookie = (await cookies()).get('session')?.value;
     const session: SessionPayload = await decrypt(cookie) as SessionPayload;
-
     const permissions: UserPermissions[] = session?.permissions ?? [];
 
     return (
         <Sidebar>
-            <SidebarHeader>
-                <span className="flex items-center justify-center scroll-m-20 border-b pb-2 text-xl font-semibold tracking-tight">
-                    blossom
-                </span>
-            </SidebarHeader>
+            <SidebarHeader></SidebarHeader>
             <SidebarContent >
                 <SidebarGroupWrapper name="General" menus={general} permissions={permissions} />
                 <SidebarGroupWrapper name="Server Management" menus={serverManagement} permissions={permissions} />
