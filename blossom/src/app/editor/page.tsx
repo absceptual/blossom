@@ -5,7 +5,7 @@ import React from "react";
 import Topbar from "@/components/topbar";
 import Container from "@/components/container";
 
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { useState, useEffect } from "react";
 import { getSavedCode, getTestcaseInput, saveCode, SubmissionResult } from "@/app/actions/editor";
 
@@ -13,7 +13,11 @@ import { getSavedCode, getTestcaseInput, saveCode, SubmissionResult } from "@/ap
 
 export default function Page() {
   
-  const params = useParams<{ id: string }>();
+  // const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+
+  const problemId = searchParams.get("id");
+
   const [code, setCode] = useState("// Loading code...");
 
   const [inputContent, setInputContent] = useState("1 2 3");
@@ -23,28 +27,28 @@ export default function Page() {
 
 
   useEffect(() => {
-    if (params.id) {
-      // TODO: Replace with dynamic username retrieval
-      getSavedCode(params.id).then(setCode);
-      getTestcaseInput(params.id).then(setInputContent);
+    console.log("Problem ID:", problemId);
+    if (problemId) {
+      getSavedCode(problemId).then(setCode);
+      getTestcaseInput(problemId).then(setInputContent);
     }
-  }, [params.id]); // Re-run if the problem ID changes
+  }, [problemId]); // Re-run if the problem ID changes
 
   useEffect(() => {
     if ( code === "// Loading code...") 
       return; 
 
     const timer = setTimeout(() => {
-      if (params.id) {
+      if (problemId) {
         // TODO: Replace with dynamic username retrieval
-        saveCode(params.id, code)
+        saveCode(problemId, code)
       }
     }, 500);
 
     return () => {
       clearTimeout(timer);
     }
-  }, [code, params.id]); // Re-run if code or problem ID changes
+  }, [code, problemId]); // Re-run if code or problem ID changes
   // This function will be called by the Topbar after the submission
 
   function handleSubmissionComplete(result: SubmissionResult)  {
@@ -58,11 +62,11 @@ export default function Page() {
   };
 
   async function onSaveCode() {
-    const blob = new Blob([await getSavedCode(params.id)], { type: "text/plain" });
+    const blob = new Blob([await getSavedCode(problemId)], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${params.id}.java`
+    a.download = `${problemId}.java`
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -82,12 +86,12 @@ export default function Page() {
   return (
     <div className="flex h-screen bg-neutral-800 flex-col">
       {/* Pass the handler function down to Topbar */}
-      <Topbar problemId={params.id} customTestcase={inputContent} onSubmissionComplete={handleSubmissionComplete} onOpenInput={onOpenInput} onOpenCode={onOpenCode} onSaveCode={onSaveCode} />
+      <Topbar problemId={problemId} customTestcase={inputContent} onSubmissionComplete={handleSubmissionComplete} onOpenInput={onOpenInput} onOpenCode={onOpenCode} onSaveCode={onSaveCode} />
       <div className="w-py-10"></div>
       {/* Pass all the states down to Container */}
       <Container
         code={code}
-        problemId={params.id}
+        problemId={problemId}
         onCodeChange={setCode}
         inputContent={inputContent}
         outputContent={outputContent}

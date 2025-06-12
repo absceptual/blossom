@@ -1,0 +1,28 @@
+{
+  "general": [
+    {
+        "label": "Home",
+        "icon": "HomeIcon",
+        "url": "#",
+        "permissions": []
+    },
+    {
+        "label": "Leaderboard",
+        "icon": "ChartBarIcon",
+        "url":"#",
+        "permissions": []
+    },
+    {
+        "label": "Problems",
+        "icon": "CodeBracketIcon",
+        "url": "#",
+        "permissions": []
+    },
+    {
+        "label": "Settings",
+        "icon": "Cog6ToothIcon",
+        "url": "#",
+        "permissions": []
+    }
+  ]
+}
