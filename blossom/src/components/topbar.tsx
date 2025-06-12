@@ -19,7 +19,6 @@ import { PlayCircleIcon } from '@heroicons/react/24/solid';
 
 import { submitTestcase, submitCustomTestcase, SubmissionResult } from '@/app/actions/editor';
 
-import { logout } from '@/app/actions/auth';
 import { redirect } from 'next/navigation';
 
 export default function Topbar({ 
