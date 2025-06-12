@@ -23,7 +23,6 @@ export async function signup(formData: FormData) {
 
     const password = formData.get("password") as string;
     const code = formData.get("accessCode") as string;
-    const redirectTo = formData.get("redirectTo") as string;
 
     if ( !username || !password) 
         return; // Invalid input

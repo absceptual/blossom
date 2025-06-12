@@ -5,7 +5,7 @@ import React from "react";
 import Topbar from "@/components/topbar";
 import Container from "@/components/container";
 
-import { useParams, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useState, useEffect } from "react";
 import { getSavedCode, getTestcaseInput, saveCode, SubmissionResult } from "@/app/actions/editor";
 
