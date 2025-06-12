@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { decrypt, updateSession } from '@/app/lib/session'
+import { decrypt } from '@/app/lib/session'
 import { cookies } from 'next/headers'
  
 
@@ -15,7 +15,6 @@ export default async function middleware(req: NextRequest) {
   if (isPublicRoute) 
     return NextResponse.next();
   
-
   // 3. Decrypt the session from the cookie
   const cookie = (await cookies()).get('session')?.value
   const session = await decrypt(cookie)
