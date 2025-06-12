@@ -23,6 +23,7 @@ export async function signup(formData: FormData) {
 
     const password = formData.get("password") as string;
     const code = formData.get("accessCode") as string;
+    const redirectTo = formData.get("redirectTo") as string;
 
     if ( !username || !password) 
         return; // Invalid input
@@ -60,7 +61,7 @@ export async function signup(formData: FormData) {
     await createSession(username, [...codeEntry.permissions as UserPermissions[]]);
 
     // console.log(`User ${username} signed up successfully. Password hash: ${hashedPassword}`);
-    redirect("/editor/hanika");
+    redirect("/dashboard");
 
 }
 
@@ -70,6 +71,7 @@ export async function login(formData: FormData) {
     username = username.toLowerCase().trim();
 
     const password = formData.get("password") as string;
+    
 
     if ( !username || !password ) {
         console.log("Invalid input");
@@ -77,10 +79,9 @@ export async function login(formData: FormData) {
     }
 
     const user = await sql `SELECT hash, permissions FROM users where username = ${username} `
-    if (!user) {
+    if (!user || user.length === 0) {
         console.log(`User ${username} does not exist`);
         return; // User doesn't exist
-
     }
 
     console.log(user[0].hash.toString())
@@ -96,5 +97,5 @@ export async function login(formData: FormData) {
     await createSession(username, [...user[0].permissions as UserPermissions[]]);
 
     // console.log(`User ${username} signed up successfully. Password hash: ${hashedPassword}`);
-    redirect("/editor/hanika");
+    redirect("/dashboard");
 }
