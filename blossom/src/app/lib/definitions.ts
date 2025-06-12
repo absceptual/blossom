@@ -2,6 +2,7 @@
 export enum UserPermissions {
     UPLOAD_PROBLEMS = 0,
     ADMINISTRATOR = 1,
+    MANAGEMENT_ACCESS = 3,
 }
 
 export type SessionPayload = {
