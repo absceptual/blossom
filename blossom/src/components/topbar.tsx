@@ -20,6 +20,7 @@ import { PlayCircleIcon } from '@heroicons/react/24/solid';
 import { submitTestcase, submitCustomTestcase, SubmissionResult } from '@/app/actions/editor';
 
 import { logout } from '@/app/actions/auth';
+import { redirect } from 'next/navigation';
 
 export default function Topbar({ 
   problemId, 
@@ -81,7 +82,7 @@ export default function Topbar({
         
       }
       <div className="flex  h-full items-center justify-center px-4 bg-neutral-800 hover:bg-neutral-700">
-        <HomeIcon onClick={logout} className="size-4 items-center text-white" />
+        <HomeIcon onClick={() => redirect('/dashboard')} className="size-4 items-center text-white" />
       </div>
       <div className="flex h-full align-items-left">
         <DropdownMenu open={fileDropdownOpen} onOpenChange={setFileDropdownOpen}>
