@@ -138,7 +138,9 @@ export function SubmissionDetailsCard({ submission, problem, showUser = true }) 
 export function formatTimeAgo(dateStr: string | Date): string {
     // Parse the date string as UTC (which is how it's stored in the database)
     const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
-    const now = new Date();
+    const now = new Date(new Date().toLocaleDateString('en-US', {
+        timeZone: "America/Chicago"
+    }));
 
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
