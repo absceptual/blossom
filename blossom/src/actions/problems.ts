@@ -224,10 +224,10 @@ function getColorForLevel(level: string) {
 export async function getUserStartedProblems(username: string) {
     try {
         const problems: FetchedProblem[] = await sql`
-            SELECT p.problem_id as id, 
-                   p.problem_name as name, 
-                   p.competition_level as difficulty, 
-                   p.problem_year as year,
+            SELECT p.problem_id,
+                   p.problem_name,
+                   p.competition_level,
+                   p.problem_year,
                    up.last_worked
             FROM user_problems up
             JOIN problems p ON up.problem_id = p.problem_id

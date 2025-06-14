@@ -82,9 +82,10 @@ export default function LaunchCard({ username }: { username: string }) {
         {startedProblems.length > 0 ? 
           <ScrollArea className="h-64">
             <div className="space-y-3">
-              {startedProblems.map((problem: FetchedProblem) => {
+              {startedProblems.map((problem: FetchedProblem, index) => {
                 
-                return ( <Link key={problem.problem_id} href={`/editor?id=${problem.problem_id}`}>
+                console.log("Problem:", problem);
+                return ( <Link key={index} href={`/editor?id=${problem.problem_id}`}>
                   <div className="group flex items-center justify-between p-3 hover:bg-muted/50 transition-colors cursor-pointer rounded-lg">
                     <div className="flex items-center space-x-3 flex-1">
                       <div className="flex-1 min-w-0">
