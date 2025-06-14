@@ -11,12 +11,12 @@ export default async function middleware(req: NextRequest) {
   const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route));
   const isPublicRoute = publicRoutes.some((route) => path.startsWith(route)) || publicRoutes.includes(path)
 
-  if (isPublicRoute) 
-    return NextResponse.next();
-  
   const cookie = (await cookies()).get('session')?.value
   const session = await decrypt(cookie)
 
+  if (isPublicRoute) 
+    return NextResponse.next();
+  
   if (isProtectedRoute && !session?.username) {
     return NextResponse.redirect(new URL('/portal', req.nextUrl))
   }

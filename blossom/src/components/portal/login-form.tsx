@@ -55,6 +55,7 @@ export function LoginForm({
   const [touched, setTouched] = useState<{[key: string]: boolean}>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string>("");
+  const [success, setSuccess] = useState(false);
   const router = useRouter();
 
   const validateForm = async () => {
@@ -83,6 +84,7 @@ export function LoginForm({
     // Clear server error when user starts typing
     if (serverError) setServerError("");
     // Mark field as touched when user starts typing
+    if (success) setSuccess(false);
     if (!touched[name]) {
       setTouched(prev => ({ ...prev, [name]: true }));
     }
@@ -96,6 +98,7 @@ export function LoginForm({
   const handleSubmit = async (formData: FormData) => {
     setIsSubmitting(true);
     setServerError("");
+    setSuccess(false);
     
     // Mark all fields as touched on submit attempt
     setTouched({ username: true, password: true });
@@ -113,9 +116,10 @@ export function LoginForm({
         setServerError(result);
       }
       else {
+        setSuccess(true);
         setTimeout(() => {
           router.push('/dashboard');
-        }, 500)
+        }, 1000)
 
       }
       // If no result, redirect should have happened
@@ -157,7 +161,7 @@ export function LoginForm({
                 </div>
               )}
               {
-                !serverError && (
+                success && (
                   <div className={cn("p-3 rounded-md bg-green-50 border border-green-200", successMessageClass)}>
                     Successfully logged in! Redirecting...
                   </div>
@@ -255,6 +259,7 @@ export function RegisterForm({
   const [touched, setTouched] = useState<{[key: string]: boolean}>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string>("");
+  const [success, setSuccess] = useState(false);
   const router = useRouter();
 
   const validateForm = async () => {
@@ -283,6 +288,7 @@ export function RegisterForm({
     // Clear server error when user starts typing
     if (serverError) setServerError("");
 
+    if ( success ) setSuccess(false);
     // Mark field as touched when user starts typing
     if (!touched[name]) {
       setTouched(prev => ({ ...prev, [name]: true }));
@@ -315,10 +321,11 @@ export function RegisterForm({
         setServerError(result);
       }
       else {
+        setSuccess(true);
         
         setTimeout(() => {
           router.push('/dashboard');
-        }, 500)
+        }, 1000)
       }
       // If no result, redirect should have happened
     } catch (error) {
@@ -328,7 +335,7 @@ export function RegisterForm({
           validationErrors[err.path] = err.message;
         });
         setErrors(validationErrors);
-      } else if (error.message != 'NEXT_REDIRECT') {
+      } else {
         setServerError("An unexpected error occurred");
       }
     } finally {
@@ -358,7 +365,7 @@ export function RegisterForm({
                   {serverError}
                 </div>
               )}
-              {!serverError && (
+              {success && (
                 <div className={cn("p-3 rounded-md bg-green-50 border border-green-200", successMessageClass)}>
                   Account created successfully! Redirecting to dashboard...
                 </div>
