@@ -11,8 +11,8 @@ import { SubmissionStatus } from '@/components/shared/submission-status';
 import { NewProblemDialog } from '@/components/dashboard/launch-card';
 import { Badge } from '@/components/ui/badge';
 import { SubmissionStatusType, SubmissionResult } from '@/types/submission';
-import { getCurrentEditorSubmission } from '@/actions/problems';
-import { ProblemContext } from '@/app/editor/page';
+import { getAvailableProblems, getCurrentEditorSubmission } from '@/actions/problems';
+import { ProblemContext } from "@/components/editor/contextprovider";
 
 import {
   DropdownMenu,
@@ -30,7 +30,7 @@ export default function Topbar({
   editorInfo: EditorInfo,
 }) {
   const [status, setStatus] = useState<SubmissionStatusType>("Not Submitted");
-  const problemId = useContext(ProblemContext);
+  const problemId = useContext(ProblemContext) ?? "";
 
   // Fetch the submission status for the current problem when it first loads
   useEffect(() => {
@@ -71,7 +71,7 @@ function RunButton({
   setStatus: React.Dispatch<React.SetStateAction<SubmissionStatusType>>
 }) {
   const [codeDropdownOpen, setCodeDropdownOpen] = useState(false);
-  const problemId = useContext(ProblemContext);
+  const problemId = useContext(ProblemContext) ?? "";
 
   async function run(useSample = true) {
     if (editorInfo.saveStatus !== 'saved' && editorInfo.saveStatus !== 'saving') {
@@ -121,6 +121,15 @@ function FileButton({
   
   const openCodeFileCallback  = async (file: Blob) => editorInfo.code.updater(await file.text());
   const openInputFileCallback = async (file: Blob) => editorInfo.input.updater(await file.text());
+  const [availableProblems, setAvailableProblems] = useState([]);
+
+  useEffect(() => {
+    const fetchProblems = async () => {
+      const problems = await getAvailableProblems();
+      setAvailableProblems(problems);
+    };
+    fetchProblems();
+  }, []);
 
   function handleNewProblem(problemId: string) {
     editorInfo.setIsCreateDialogOpen(false);
@@ -193,6 +202,7 @@ function FileButton({
         open={editorInfo.isCreateDialogOpen}
         onOpenChange={editorInfo.setIsCreateDialogOpen}
         onComplete={handleNewProblem}
+        problems={availableProblems}
       />
     </div>
   );
@@ -205,7 +215,7 @@ function SubmitButton({
   editorInfo: EditorInfo, 
   setStatus: React.Dispatch<React.SetStateAction<SubmissionStatusType>>
 }) {
-  const problemId = useContext(ProblemContext);
+  const problemId = useContext(ProblemContext) ?? "";
 
   async function submit() {
     setStatus("Submitting");

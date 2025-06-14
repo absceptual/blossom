@@ -1,9 +1,9 @@
+'use client'
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-
+import { useState, useEffect } from "react"
 import Link from "next/link"
-
 import {
   Dialog,
   DialogContent,
@@ -24,12 +24,109 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
 import { signup, login } from '@/actions/auth'
+import { object, string } from 'yup';
 
+// Add styles for error animations
+const errorInputClass = "border-red-500 animate-shake focus:border-red-500 transition-colors";
+const errorMessageClass = "text-sm text-red-500 animate-fadeIn";
+
+export const loginSchema = object({
+  username: string().required("Username is required").min(4, "Username must be at least 4 characters").max(20, "Username must be at most 20 characters"),
+  password: string().required("Password is required").min(8, "Password must be at least 8 characters"),
+})
+
+export const registerSchema = object({
+  username: string().required("Username is required").min(4, "Username must be at least 4 characters").max(20, "Username must be at most 20 characters"),
+  password: string().required("Password is required").min(8, "Password must be at least 8 characters"),
+  accessCode: string().required("Access code is required")
+})
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [formData, setFormData] = useState({ username: "", password: "" });
+  const [isValid, setIsValid] = useState(false);
+  const [touched, setTouched] = useState<{[key: string]: boolean}>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string>("");
+
+  const validateForm = async () => {
+    try {
+      await loginSchema.validate(formData, { abortEarly: false });
+      setIsValid(true);
+      // Only clear errors if form is valid
+      setErrors({});
+    } catch (error) {
+      const validationErrors = {};
+      error.inner.forEach((err) => {
+        validationErrors[err.path] = err.message;
+      });
+      setErrors(validationErrors);
+      setIsValid(false);
+    }
+  };
+
+  useEffect(() => {
+    validateForm();
+  }, [formData]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear server error when user starts typing
+    if (serverError) setServerError("");
+    // Mark field as touched when user starts typing
+    if (!touched[name]) {
+      setTouched(prev => ({ ...prev, [name]: true }));
+    }
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name } = e.target;
+    setTouched(prev => ({ ...prev, [name]: true }));
+  };
+
+  const handleSubmit = async (formData: FormData) => {
+    setIsSubmitting(true);
+    setServerError("");
+    
+    // Mark all fields as touched on submit attempt
+    setTouched({ username: true, password: true });
+    
+    try {
+      await loginSchema.validate({
+        username: formData.get("username"),
+        password: formData.get("password")
+      }, { abortEarly: false });
+      setErrors({});
+      
+      const result = await login(formData);
+      if (result) {
+        // If result is returned, it's an error message
+        setServerError(result);
+      }
+      // If no result, redirect should have happened
+    } catch (error) {
+      if (error.inner) {
+        const validationErrors = {};
+        error.inner.forEach((err) => {
+          validationErrors[err.path] = err.message;
+        });
+        setErrors(validationErrors);
+      } else {
+        setServerError("An unexpected error occurred");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const shouldShowError = (fieldName: string) => {
+    return touched[fieldName] && errors[fieldName];
+  };
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -40,8 +137,13 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={login}>
+          <form action={handleSubmit}>
             <div className="flex flex-col gap-6">
+              {serverError && (
+                <div className={cn("p-3 rounded-md bg-red-50 border border-red-200", errorMessageClass)}>
+                  {serverError}
+                </div>
+              )}
               <div className="grid gap-3">
                 <Label htmlFor="username">Username</Label>
                 <Input
@@ -50,7 +152,17 @@ export function LoginForm({
                   name="username"
                   placeholder="absceptual"
                   required
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  onBlur={handleBlur}
+                  className={cn(
+                    "transition-all duration-200 ease-in-out",
+                    shouldShowError("username") && errorInputClass
+                  )}
                 />
+                {shouldShowError("username") && (
+                  <span className={errorMessageClass}>{errors.username}</span>
+                )}
               </div>
               <div className="grid gap-3">
                 <div className="flex items-center">
@@ -73,13 +185,31 @@ export function LoginForm({
                       </DialogHeader>
                     </DialogContent>
                   </Dialog>
-                  
                 </div>
-                <Input id="password" name="password" type="password" required />
+                <Input 
+                  id="password" 
+                  name="password" 
+                  type="password" 
+                  required 
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  onBlur={handleBlur}
+                  className={cn(
+                    "transition-all duration-200 ease-in-out",
+                    shouldShowError("password") && errorInputClass
+                  )}
+                />
+                {shouldShowError("password") && (
+                  <span className={errorMessageClass}>{errors.password}</span>
+                )}
               </div>
               <div className="flex flex-col gap-3">
-                <Button type="submit" className="w-full">
-                  Login
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={!isValid || isSubmitting}
+                >
+                  {isSubmitting ? "Logging in..." : "Login"}
                 </Button>
               </div>
             </div>
@@ -100,6 +230,89 @@ export function RegisterForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [formData, setFormData] = useState({ username: "", password: "", accessCode: "" });
+  const [isValid, setIsValid] = useState(false);
+  const [touched, setTouched] = useState<{[key: string]: boolean}>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string>("");
+
+  const validateForm = async () => {
+    try {
+      await registerSchema.validate(formData, { abortEarly: false });
+      setIsValid(true);
+      // Only clear errors if form is valid
+      setErrors({});
+    } catch (error) {
+      const validationErrors = {};
+      error.inner.forEach((err) => {
+        validationErrors[err.path] = err.message;
+      });
+      setErrors(validationErrors);
+      setIsValid(false);
+    }
+  };
+
+  useEffect(() => {
+    validateForm();
+  }, [formData]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear server error when user starts typing
+    if (serverError) setServerError("");
+    // Mark field as touched when user starts typing
+    if (!touched[name]) {
+      setTouched(prev => ({ ...prev, [name]: true }));
+    }
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name } = e.target;
+    setTouched(prev => ({ ...prev, [name]: true }));
+  };
+
+  const handleSubmit = async (formData: FormData) => {
+    setIsSubmitting(true);
+    setServerError("");
+    
+    // Mark all fields as touched on submit attempt
+    setTouched({ username: true, password: true, accessCode: true });
+    
+    try {
+      await registerSchema.validate({
+        username: formData.get("username"),
+        password: formData.get("password"),
+        accessCode: formData.get("accessCode")
+      }, { abortEarly: false });
+      setErrors({});
+      
+      const result = await signup(formData);
+      if (result) {
+        // If result is returned, it's an error message
+        setServerError(result);
+      }
+      // If no result, redirect should have happened
+    } catch (error) {
+      if (error.inner) {
+        const validationErrors = {};
+        error.inner.forEach((err) => {
+          validationErrors[err.path] = err.message;
+        });
+        setErrors(validationErrors);
+      } else {
+        setServerError("An unexpected error occurred");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const shouldShowError = (fieldName: string) => {
+    return touched[fieldName] && errors[fieldName];
+  };
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -111,8 +324,13 @@ export function RegisterForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={signup}>
+          <form action={handleSubmit}>
             <div className="flex flex-col gap-6">
+              {serverError && (
+                <div className={cn("p-3 rounded-md bg-red-50 border border-red-200", errorMessageClass)}>
+                  {serverError}
+                </div>
+              )}
               <div className="grid gap-3">
                 <Label htmlFor="username">Username</Label>
                 <Input
@@ -121,27 +339,70 @@ export function RegisterForm({
                   type="username"
                   placeholder="absceptual"
                   required
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  onBlur={handleBlur}
+                  className={cn(
+                    "transition-all duration-200 ease-in-out",
+                    shouldShowError("username") && errorInputClass
+                  )}
                 />
+                {shouldShowError("username") && (
+                  <span className={errorMessageClass}>{errors.username}</span>
+                )}
               </div>
               <div className="grid gap-3">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
                 </div>
-                <Input id="password" name="password" type="password" required />
+                <Input 
+                  id="password" 
+                  name="password" 
+                  type="password" 
+                  required 
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  onBlur={handleBlur}
+                  className={cn(
+                    "transition-all duration-200 ease-in-out",
+                    shouldShowError("password") && errorInputClass
+                  )}
+                />
+                {shouldShowError("password") && (
+                  <span className={errorMessageClass}>{errors.password}</span>
+                )}
               </div>
               <div className="grid gap-3">
                 <div className="flex items-center">
                   <Label htmlFor="accessCode">Access Code</Label>
                 </div>
-                <Input id="accessCode" name="accessCode" type="text" required />
+                <Input 
+                  id="accessCode" 
+                  name="accessCode" 
+                  type="text" 
+                  required 
+                  value={formData.accessCode}
+                  onChange={handleInputChange}
+                  onBlur={handleBlur}
+                  className={cn(
+                    "transition-all duration-200 ease-in-out",
+                    shouldShowError("accessCode") && errorInputClass
+                  )}
+                />
+                {shouldShowError("accessCode") && (
+                  <span className={errorMessageClass}>{errors.accessCode}</span>
+                )}
               </div>
               <div className="flex flex-col gap-3">
-                <Button type="submit" className="w-full">
-                  Register
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={!isValid || isSubmitting}
+                >
+                  {isSubmitting ? "Creating account..." : "Register"}
                 </Button>
               </div>
-            <Separator orientation="horizontal"/>
-
+              <Separator orientation="horizontal"/>
             </div>
             <div className="mt-4 text-center text-sm">
               Existing user?

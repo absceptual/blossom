@@ -3,7 +3,8 @@ import Editor from '@monaco-editor/react';
 import Widgets from '@/components/editor/side-editor';
 import { EditorInfo } from "@/types/editor";
 import SideEditor from "@/components/editor/side-editor";
-import { ProblemContext } from "@/app/editor/page";
+import { ProblemContext } from "@/components/editor/contextprovider";
+
 import {
     ResizableHandle,
     ResizablePanel,

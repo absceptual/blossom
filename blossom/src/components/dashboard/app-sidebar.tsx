@@ -19,9 +19,6 @@ import {
 
 import { 
     HomeIcon, 
-    ChartBarIcon, 
-    CodeBracketIcon, 
-    Cog6ToothIcon, 
     ServerStackIcon,
     UserGroupIcon,
     ClipboardIcon,
@@ -29,13 +26,21 @@ import {
 } from "@heroicons/react/24/outline";
 
 
-const general = [
+interface Section {
+    label: string
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    icon: any,
+    url: string,
+    permissions: UserPermissions[]
+}
+const general: Section[] = [
     {
         label: 'Home',
         icon: HomeIcon,
         url: '#',
         permissions: [] as UserPermissions[]
     },
+    /*
     {
         label: 'Leaderboard',
         icon: ChartBarIcon,
@@ -48,63 +53,78 @@ const general = [
         url: '#',
         permissions: [] as UserPermissions[],
     },
+    */
     {
         label: 'Editor',
         icon: CodeBracketSquareIcon,
         url: 'editor',
         permissions: [] as UserPermissions[],
     },
+    /*
     {
         label: 'Settings',
         icon: Cog6ToothIcon,
         url: '#',
         permissions: [] as UserPermissions[],
     },
+    */
 ]
 
-const serverManagement = [
+const serverManagement: Section[] = [
     {
         label: 'Judge0',
         icon: ServerStackIcon,
         url: '#',
-        permissions: [] as UserPermissions[]
+        permissions: [UserPermissions.VIEW_JUDGE0_CONFIG] as UserPermissions[]
     },
     {
         label: 'Users',
         icon: UserGroupIcon,
         url: '#',
-        permissions: [] as UserPermissions[]
+        permissions: [UserPermissions.MANAGE_USERS] as UserPermissions[]
     },
     {
         label: 'Problems',
         icon: ClipboardIcon,
         url: '#',
-        permissions: [] as UserPermissions[],
+        permissions: [UserPermissions.MANAGE_PROBLEMS] as UserPermissions[],
     },
 ]
 
-function SidebarGroupWrapper({ name, menus, permissions }) {
-    return (
-        <SidebarGroup>
+function SidebarGroupWrapper({ 
+    name, 
+    menus, 
+    permissions 
+}: {
+    name: string,
+    menus: Section[],
+    permissions: UserPermissions[]
+}) {
+
+    const items = menus.map((item: Section) => {
+        return hasPermission(permissions, item.permissions) ?
+        (<SidebarMenuItem key={item.label}>
+            <SidebarMenuButton asChild>
+                <a href={item.url}>
+                    <item.icon  />
+                    <span>{item.label}</span>
+                </a>   
+            </SidebarMenuButton>
+        </SidebarMenuItem>)
+        : null;
+    });
+
+    // Don't render component if we don't have permissions to see anything in this group
+    return items.some((item) => item !== null) ? (
+            <SidebarGroup>
                     <SidebarGroupLabel>{name}</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            {menus.map((item) => {
-                                return hasPermission(permissions, item.permissions) ?
-                                (<SidebarMenuItem key={item.label}>
-                                    <SidebarMenuButton asChild>
-                                        <a href={item.url}>
-                                            <item.icon  />
-                                            <span>{item.label}</span>
-                                        </a>   
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>)
-                                : null;
-                        })}
+                            {...items}
                         </SidebarMenu>
                     </SidebarGroupContent>
         </SidebarGroup>
-    )
+        ) : null;
 }
 
 export async function AppSidebar() {
@@ -120,7 +140,10 @@ export async function AppSidebar() {
                 <SidebarGroupWrapper name="Server Management" menus={serverManagement} permissions={permissions} />
             </SidebarContent>
             <SidebarFooter>
-                <User username={session?.username} permissions={permissions} />
+                <div className="mb-3">
+                    <User username={session?.username} permissions={permissions} />
+
+                </div>
             </SidebarFooter>
         </Sidebar>
     )

@@ -1,40 +1,58 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use server';
 
 import { verifySession } from '@/lib/dal';
+import { SubmissionStatusType } from '@/types/submission';
+import { createSubmissionEntry } from '@/actions/problems';
 import { put, head } from '@vercel/blob';
+import { SubmissionResult } from '@/types/submission';
 
 const dataDir = "data"
 
 const JUDGE_URL = "https://judge0-extra-ce.p.rapidapi.com";
-/*
-const JUDGE_HEADERS = {
-    'X-Auth-Token': process.env.JUDGE_API_KEY || "",
-    'Content-Type': 'application/json'
-}
-*/
 
-export async function saveCode(problemName: string, code: string) {
+const JUDGE_HEADERS = {
+    'x-rapidapi-key': process.env.JUDGE_API_KEY || "",
+    'x-rapidapi-host': "judge0-extra-ce.p.rapidapi.com",
+    'Content-Type': 'application/json'
+};
+
+export async function saveCode(problemId: string, code: string) {
     const session = await verifySession();
     if (!session) return "// User not authenticated";
 
     const username: string = session?.username as string;
-        const userSubmissionPath = `${dataDir}/${problemName}/submissions/${username}.java`;
+    const userSubmissionPath = `${dataDir}/${problemId}/submissions/${username}.java`;
+    
     try {
+        
+        // Try to put the blob
         const blobResult = await put(userSubmissionPath, code, {
-            access: 'public', // Or 'private' if you handle signed URLs for reads
-            contentType: 'text/x-java-source; charset=utf-8', // Be specific with content type,
-            allowOverwrite: true, // Allow overwriting existing blobs
-            // Add any cache control headers if needed
+            access: 'public',
+            contentType: 'text/x-java-source; charset=utf-8',
+            addRandomSuffix: false, // Ensure exact path
+            allowOverwrite: true,
         });
-        console.log(`Code saved for user ${username} to blob: ${blobResult.url}`);
-        //const filePath = path.join(dataDir + `/${problemName}/submissions/${username}.java`);
-        //fs.writeFile(filePath, code, 'utf8')
+
+        // Try to read it back immediately
+        const response = await fetch(blobResult.url, { next: { revalidate: 0 }});
+        const savedContent = await response.text();
+        
+        if (savedContent !== code) {
+            throw new Error(`Local content for ${username} in problem ${problemId} doesn't match content on server.`);
+        }
+
+        return "success";
     }
     catch (error) {
-        console.error("Error writing file:", error);
-        return "// Error writing file";
+        console.error("Error in saveCode:", {
+            error,
+            path: userSubmissionPath
+        });
+        return "error";
     }
-} 
+}
 export async function getTestcaseInput(problemName: string) {
     const session = await verifySession();
     if (!session) return "// User not authenticated";
@@ -48,7 +66,7 @@ export async function getTestcaseInput(problemName: string) {
         return await response.text();
     }
     catch (error) {
-        console.error("Error reading file:", error);
+        console.error("Error in getTestcaseInput:", error);
         return "// Error reading file";
     }
 }
@@ -66,7 +84,7 @@ export async function getTestcaseOutput(problemName: string) {
         return await response.text();
     }
     catch (error) {
-        console.error("Error reading file:", error);
+        console.error("Error in getTestcaseOutput:", error);
         return "// Error reading file";
     }
 }
@@ -78,12 +96,11 @@ export async function getSavedCode(problemName: string) {
     if (!session) return "// User not authenticated";
 
     const username: string = session?.username as string;
-    console.log("ich san bull")
     const userSubmissionPath =  "data/" + problemName + "/submissions/" + username + ".java";
 
     try {
         const userBlob = await head(userSubmissionPath); // Throws if not found
-        const response = await fetch(userBlob.url);
+        const response = await fetch(`${userBlob.url}?v=${Date.now()}`, { next: { revalidate: 0 }});
         console.log(`Fetching user's code from blob: ${userBlob.url}`);
         if (!response.ok) {
             // This case might be rare if head succeeded, but good to check
@@ -91,9 +108,10 @@ export async function getSavedCode(problemName: string) {
         }
         return await response.text();
     }
-    catch (error) {
+    catch (error: any) {
         // Assuming error means the user's submission blob was not found
-        console.log(`User's code at ${userSubmissionPath} not found or error fetching. Attempting to use example. Error: ${error.message}`);
+        const exception: Error = error;
+        console.log(`User's code at ${userSubmissionPath} not found or error fetching. Attempting to use example`);
 
         try {
             // Fetch the example code from its blob
@@ -112,14 +130,14 @@ export async function getSavedCode(problemName: string) {
             });
             console.log(`Initialized ${userSubmissionPath} with example code for user ${username}.`);
             return exampleCode;
-        } catch (exampleError) {
+        } catch (exampleError: any) {
             console.error(`Error processing example code for ${username} and problem ${problemName}: ${exampleError.message}`);
             return "// Error loading or saving example code";
         }
     }
 }
 
-export async function submitCustomTestcase(problemName: string, input: string) {
+export async function submitCustomTestcase(problemName: string, code: string, input: string) {
     
     const session = await verifySession();
     if (!session) return "// User not authenticated";
@@ -130,79 +148,7 @@ export async function submitCustomTestcase(problemName: string, input: string) {
     // Ensure the userName and problemName are valid strings
     const options = {
         method: 'POST',
-        headers: {
-            'x-rapidapi-key': process.env.JUDGE_API_KEY || "",
-            'x-rapidapi-host': "judge0-extra-ce.p.rapidapi.com",
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            language_id: 4, // Java
-            source_code: btoa(await getSavedCode(problemName)), // Base64 encode the code
-            stdin: btoa(input), // Base64 encode the input
-        })
-    };
-
-    try {
-        const response = await fetch(url, options);
-        const result = await response.json();
-        return result;
-    } catch (error) {
-        console.error(error + " - Error during submission");
-    }
-    console.log("Submission completed for user:", username, "and problem:", problemName);
-};
-
-export async function submitTestcase(problemName: string) {
-    const session = await verifySession();
-    if (!session) return "// User not authenticated";
-
-    const url = JUDGE_URL + "/submissions/?base64_encoded=true&wait=true";
-    
-
-    // Ensure the userName and problemName are valid strings
-    const options = {
-        method: 'POST',
-        headers: {
-            'x-rapidapi-key': process.env.JUDGE_API_KEY || "",
-            'x-rapidapi-host': "judge0-extra-ce.p.rapidapi.com",
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            language_id: 4, // Java
-            source_code: btoa(await getSavedCode(problemName)), // Base64 encode the code
-            stdin: btoa( await getTestcaseInput(problemName)), // Base64 encode the input
-            expected_output: btoa(await getTestcaseOutput(problemName)), // Base64 encode the expected output
-        })
-    };
-
-    try {
-        const response = await fetch(url, options);
-        const result = await response.json();
-        return result;
-    } catch (error) {
-        console.error(error + " - Error during submission");
-    }
-};
-
-export async function submitJudge(problemName: string) {
-    console.log(problemName);
-    const response = await fetch("", {});
-    const result = await response.json();
-    return result
-}
-
-export async function submitLocal(problemName: string, code: string, input: string) {
-    const session = await verifySession();
-    if (!session) return "// User not authenticated";
-
-    const url = JUDGE_URL + "/submissions/?base64_encoded=true&wait=true";
-    const options = {
-        method: 'POST',
-        headers: {
-            'x-rapidapi-key': process.env.JUDGE_API_KEY || "",
-            'x-rapidapi-host': "judge0-extra-ce.p.rapidapi.com",
-            'Content-Type': 'application/json'
-        },
+        headers: JUDGE_HEADERS,
         body: JSON.stringify({
             language_id: 4, // Java
             source_code: btoa(code), // Base64 encode the code
@@ -215,6 +161,128 @@ export async function submitLocal(problemName: string, code: string, input: stri
         const result = await response.json();
         return result;
     } catch (error) {
-        console.error(error + " - Error during submission");
+        console.error("Error in submitCustomTestcase:", error);
+        return {
+            status: {
+                id: 13, // Internal Error
+                description: "Internal Error"
+            }
+        };
     }
+    console.log("Submission completed for user:", username, "and problem:", problemName);
+};
+
+export async function submitTestcase(problemName: string, code: string) {
+    const session = await verifySession();
+    if (!session) return "// User not authenticated";
+
+    const url = JUDGE_URL + "/submissions/?base64_encoded=true&wait=true";
+    
+    // Ensure the userName and problemName are valid strings
+    const options = {
+        method: 'POST',
+        headers: JUDGE_HEADERS,
+        body: JSON.stringify({
+            language_id: 4, // Java
+            source_code: btoa(code), // Base64 encode the code
+            stdin: btoa( await getTestcaseInput(problemName)), // Base64 encode the input
+            expected_output: btoa(await getTestcaseOutput(problemName)), // Base64 encode the expected output
+        })
+    };
+
+    try {
+        const response = await fetch(url, options);
+        const result = await response.json();
+        return result;
+    } catch (error) {
+        console.error("Error in submitTestcase:", error);
+        return {
+            status: {
+                id: 13, // Internal Error
+                description: "Internal Error"
+            }
+        };
+    }
+};
+
+export async function submitJudge(code: string, input: string, problemId: string) {
+    let result: SubmissionResult = {
+        status: {
+            id: 0,
+            description: "Not Submitted"
+        }
+    };
+
+    const session = await verifySession();
+    if (!session) return result;
+
+    // Get input and output paths from blob storage
+    const inputPath = `${dataDir}/${problemId}/judge/${problemId}.dat`;
+    const outputPath = `${dataDir}/${problemId}/judge/${problemId}.out`;
+    const url = JUDGE_URL + "/submissions/?base64_encoded=true&wait=true";
+
+    let expectedOutput = null;
+
+    try {    
+        // Only fetch input and output if we are submitting a testcase
+        if (problemId !== "") {
+            const inputBlob = await head(inputPath);
+            const inputResponse = await fetch(inputBlob.url);
+            if (!inputResponse.ok) {
+                throw new Error(`Failed to fetch input file: ${inputResponse.statusText}`);
+            }
+            input = await inputResponse.text();
+
+            // Fetch output file
+            const outputBlob = await head(outputPath);
+            const outputResponse = await fetch(outputBlob.url);
+            if (!outputResponse.ok) {
+                throw new Error(`Failed to fetch output file: ${outputResponse.statusText}`);
+            }
+            expectedOutput = await outputResponse.text();
+        }
+
+        // Submit to Judge0
+        const options = {
+            method: 'POST',
+            headers: JUDGE_HEADERS,
+            body: JSON.stringify({
+                language_id: 4, // Java
+                source_code: btoa(code), // Base64 encode the code
+                stdin: btoa(input), // Base64 encode the input
+            })
+        };
+
+        if (expectedOutput) 
+            options.body = JSON.stringify({
+                ...JSON.parse(options.body),
+                expected_output: btoa(expectedOutput)
+            });
+        
+        const response = await fetch(url, options);
+        result = await response.json();
+    } catch (error) {
+        console.error("Error in submitJudge:", {
+            error,
+            problemId
+        });
+        result = {
+            status: {
+                id: 13, // Internal Error
+                description: "Internal Error"
+            },
+            message: result?.message
+        };
+    };
+
+    if (problemId) {
+        createSubmissionEntry({
+            problem_id: problemId,
+            username: session?.username as string,
+            status: result.status.description as SubmissionStatusType,
+            date: new Date()
+        });
+    }
+    return result;
 }
+

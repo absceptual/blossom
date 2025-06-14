@@ -1,14 +1,24 @@
 'use server'
 import { createSession, deleteSession } from "@/lib/session"
 import { redirect } from "next/navigation";
-
 import bcrypt from 'bcrypt';
-
 import { UserPermissions } from "@/lib/types";
-
 import postgres from 'postgres';
 
 const sql = postgres(process.env.DATABASE_URL);
+
+import { object, string } from 'yup';
+
+const loginSchema = object({
+  username: string().required("Username is required").min(4, "Username must be at least 4 characters").max(20, "Username must be at most 20 characters"),
+  password: string().required("Password is required").min(8, "Password must be at least 8 characters"),
+})
+
+const registerSchema = object({
+  username: string().required("Username is required").min(4, "Username must be at least 4 characters").max(20, "Username must be at most 20 characters"),
+  password: string().required("Password is required").min(8, "Password must be at least 8 characters"),
+  accessCode: string().required("Access code is required")
+})
 
 export async function logout() {
     await deleteSession();
@@ -16,85 +26,83 @@ export async function logout() {
 }
 
 export async function signup(formData: FormData) {
+    console.log("Signup action called");
     const HASH_ROUNDS = 10;
 
     let username = formData.get("username") as string;
     username = username.toLowerCase().trim();
 
     const password = formData.get("password") as string;
-    const code = formData.get("accessCode") as string;
+    const accessCode = formData.get("accessCode") as string;
 
-    if ( !username || !password) 
-        return; // Invalid input
+    try {
+        await registerSchema.validate({
+            username: username,
+            password: password,
+            accessCode: accessCode
+        });
+    } catch (error) {
+        return error.message;
+    }
 
     const hashedPassword = bcrypt.hashSync(password, HASH_ROUNDS);
-    const users = await sql `SELECT id FROM users where username = ${username} `
-    if (users.length > 0)
-        return; // User already exists
+    const users = await sql`SELECT id FROM users where username = ${username}`;
+    if (users.length > 0) {
+        return "Username already exists";
+    }
 
     const id = Number((await sql`SELECT COUNT(*) FROM users`)[0].count) + 1;
     const accessCodes = await sql`
-        SELECT current_uses, maximum_uses, permissions FROM access_codes WHERE code = ${code}
+        SELECT current_uses, maximum_uses, permissions FROM access_codes WHERE code = ${accessCode}
     `;
 
     if (accessCodes.length === 0) {
-        console.log(`Access code ${code} does not exist`);
-        return; // Access code not found
+        return "Invalid access code";
     }
 
-    const codeEntry = accessCodes[0]
-    if (codeEntry.current_uses >= codeEntry.maximum_uses)
-        return; // Access code has reached its maximum uses
+    const codeEntry = accessCodes[0];
+    if (codeEntry.current_uses >= codeEntry.maximum_uses) {
+        return "Access code has reached its maximum uses";
+    }
 
-    console.log(id);
     await sql`
         INSERT INTO users (id, username, hash, code, permissions)
-        VALUES (${id}, ${username}, ${hashedPassword}, ${code}, ${codeEntry.permissions})
+        VALUES (${id}, ${username}, ${hashedPassword}, ${accessCode}, ${codeEntry.permissions})
     `;
 
     await sql`
         UPDATE access_codes
         SET current_uses = current_uses + 1
-        WHERE code = ${code}
+        WHERE code = ${accessCode}
     `;
     await createSession(username, [...codeEntry.permissions as UserPermissions[]]);
-
-    // console.log(`User ${username} signed up successfully. Password hash: ${hashedPassword}`);
     redirect("/dashboard");
-
 }
-
 
 export async function login(formData: FormData) {
     let username = formData.get("username") as string;
     username = username.toLowerCase().trim();
-
     const password = formData.get("password") as string;
-    
 
-    if ( !username || !password ) {
-        console.log("Invalid input");
-        return; // Invalid input
+    try {
+        await loginSchema.validate({
+            username: username,
+            password: password
+        });
+    } catch (error) {
+        console.error("Validation error:", error.message);
+        return error.message;
     }
 
-    const user = await sql `SELECT hash, permissions FROM users where username = ${username} `
+    const user = await sql`SELECT hash, permissions FROM users where username = ${username}`;
     if (!user || user.length === 0) {
-        console.log(`User ${username} does not exist`);
-        return; // User doesn't exist
+        return "Invalid username or password";
     }
 
-    console.log(user[0].hash.toString())
     if (!bcrypt.compareSync(password, user[0].hash.toString())) {
-        console.log(`Invalid password for user ${username}`);
-        // You might want to log this attempt or handle it differently
-        // console.log(`User ${username} attempted to log in with an invalid password.`);
-        // redirect("/portal"); // Redirect to portal or login page
-        return; // Invalid password
+        return "Invalid username or password";
     }
 
-    console.log(user[0].permissions)
     await createSession(username, [...user[0].permissions as UserPermissions[]]);
-
-    // console.log(`User ${username} signed up successfully. Password hash: ${hashedPassword}`);
     redirect("/dashboard");
 }

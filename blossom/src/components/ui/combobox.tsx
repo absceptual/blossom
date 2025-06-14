@@ -30,7 +30,8 @@ export function Combobox({disabled, searchPlaceholder, selectPlaceholder, emptyP
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={`w-full ${disabled !== true ? "" : "text-muted-foreground"} justify-between`}
+          className={`w-full justify-between`}
+          disabled={disabled ? true : false}
         >
           {value
             ? options.find((option) => option.value === value)?.label
@@ -44,9 +45,9 @@ export function Combobox({disabled, searchPlaceholder, selectPlaceholder, emptyP
           <CommandList>
             <CommandEmpty>{emptyPlaceholder}</CommandEmpty>
             <CommandGroup>
-              {options.map((option) => (
+              {options.map((option, index) => (
                 <CommandItem
-                  key={option.value}
+                  key={index}
                   value={option.value}
                   onSelect={(currentValue) => {
                     setValue(currentValue === value ? "" : currentValue)

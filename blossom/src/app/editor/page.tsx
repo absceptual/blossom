@@ -1,13 +1,14 @@
 'use client';
 
-import React, { Suspense, useState, useEffect, useRef, createContext } from "react";
+import React, { Suspense, useState, useEffect, useRef } from "react";
 import { useSearchParams } from 'next/navigation'
 import { getSavedCode, getTestcaseInput, saveCode } from "@/actions/editor";
 import Topbar from "@/components/editor/topbar";
 import Container from "@/components/editor/container";
 import PageSuspense from '@/components/shared/PageSuspense';
 import { EditorInfo } from "@/types/editor";
-
+import { startProblem } from "@/actions/problems";
+import ProblemContextProvider from "@/components/editor/contextprovider";
 
 const JAVA_BOILERPLATE = `import java.util.*;
 import java.io.*;
@@ -32,8 +33,6 @@ public class Main {
     }
 }`;
 
-
-export const ProblemContext = createContext(undefined);
 
 export default function Page() {
   return (
@@ -117,14 +116,19 @@ function EditorInstance() {
     saveStatus: saveStatus
   };
 
-  
+  useEffect(() => {
+    if (problemId) {
+      startProblem(problemId);
+    }
+  }, [problemId]);
+
   return (
       <main className="flex h-screen bg-neutral-800 flex-col">
-        <ProblemContext.Provider value={problemId}>
+        <ProblemContextProvider problemId={problemId}>
             <Topbar editorInfo={editorInfo} />
             <div className="w-py-10"></div>
             <Container editorInfo={editorInfo} />
-        </ProblemContext.Provider>
+        </ProblemContextProvider>
       </main>
     );
 }

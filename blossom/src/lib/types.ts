@@ -2,7 +2,11 @@
 export enum UserPermissions {
     UPLOAD_PROBLEMS = 0,
     ADMINISTRATOR = 1,
-    MANAGEMENT_ACCESS = 3,
+
+    VIEW_JUDGE0_CONFIG = 2,
+    MANAGE_USERS = 3,
+    MANAGE_PROBLEMS = 4,
+    MANAGEMENT_ACCESS = 5,
 }
 
 

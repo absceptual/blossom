@@ -9,21 +9,27 @@ import { UserPermissions } from "@/lib/types";
 
 import { logout } from "@/actions/auth";
 
-function getUserRole(permissions) {
+function getUserRole(permissions: UserPermissions[]) {
     return permissions.includes(UserPermissions.MANAGEMENT_ACCESS) ? 'Administrator' : 'User';
 }
 
-export default function User({ username, permissions }) {
+export default function User({ 
+    username, 
+    permissions 
+}: {
+    username: string,
+    permissions: UserPermissions[],
+}) {
     const [isOpen, setIsOpen] = useState(false);
     
     return (
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <DropdownMenuTrigger asChild>
-                <SidebarMenuButton>
+                <SidebarMenuButton className="w-full">
                     <UserIcon />
                     <div className="flex flex-col items-start justify-items-start">
-                        <span>{username}</span>
-                        <p className="text-muted-foreground text-xs">{getUserRole(permissions)}</p>
+                        <span className="truncate">{username}</span>
+                        <p className="text-muted-foreground text-xs truncate">{getUserRole(permissions)}</p>
                     </div>
                     {isOpen ? <ChevronDownIcon className="ml-auto h-4 w-4" /> : <ChevronUpIcon className="ml-auto h-4 w-4" />} 
                 </SidebarMenuButton>
