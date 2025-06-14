@@ -8,6 +8,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 const sql = postgres(process.env.DATABASE_URL);
+
 export async function createSubmissionEntry(submission: Submission) {
     const session = await verifySession();
     if (!session) return false;
@@ -95,7 +96,7 @@ export async function getProblem(problemId: string) {
     if (!session) return null;
 
     const problem = await sql`
-        SELECT * FROM problems
+        SELECT id, problem_id, problem_year, competition_level, problem_name, tags FROM problems
         WHERE problem_id = ${problemId}::text
     `;
 
@@ -104,10 +105,10 @@ export async function getProblem(problemId: string) {
 
 export async function getAvailableProblems() {
     const session = await verifySession();
-    if (!session) return null;
+    if (!session) return [];
 
     const problems = await sql`
-        SELECT * FROM problems
+        SELECT id, problem_id, problem_year, competition_level, problem_name, tags FROM problems
         ORDER BY problem_year DESC, competition_level ASC, problem_name ASC
     `;
 
