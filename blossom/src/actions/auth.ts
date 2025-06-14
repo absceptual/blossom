@@ -10,12 +10,12 @@ const sql = postgres(process.env.DATABASE_URL);
 import { object, string } from 'yup';
 
 const loginSchema = object({
-  username: string().required("Username is required").min(4, "Username must be at least 4 characters").max(20, "Username must be at most 20 characters"),
+  username: string().required("Username is required").min(4, "Username must be at least 4 characters").max(14, "Username must be at most 14 characters"),
   password: string().required("Password is required").min(8, "Password must be at least 8 characters"),
 })
 
 const registerSchema = object({
-  username: string().required("Username is required").min(4, "Username must be at least 4 characters").max(20, "Username must be at most 20 characters"),
+  username: string().required("Username is required").min(4, "Username must be at least 4 characters").max(14, "Username must be at most 14 characters"),
   password: string().required("Password is required").min(8, "Password must be at least 8 characters"),
   accessCode: string().required("Access code is required")
 })
@@ -75,6 +75,7 @@ export async function signup(formData: FormData) {
         SET current_uses = current_uses + 1
         WHERE code = ${accessCode}
     `;
+
     await createSession(username, [...codeEntry.permissions as UserPermissions[]]);
     redirect("/dashboard");
 }
@@ -104,5 +105,4 @@ export async function login(formData: FormData) {
     }
 
     await createSession(username, [...user[0].permissions as UserPermissions[]]);
-    redirect("/dashboard");
 }

@@ -25,18 +25,22 @@ import { Label } from "@/components/ui/label"
 
 import { signup, login } from '@/actions/auth'
 import { object, string } from 'yup';
+import { useRouter } from "next/navigation"
+
 
 // Add styles for error animations
 const errorInputClass = "border-red-500 animate-shake focus:border-red-500 transition-colors";
 const errorMessageClass = "text-sm text-red-500 animate-fadeIn";
+const successMessageClass = "text-sm text-green-600 animate-fadeIn";
+
 
 export const loginSchema = object({
-  username: string().required("Username is required").min(4, "Username must be at least 4 characters").max(20, "Username must be at most 20 characters"),
+  username: string().required("Username is required").min(4, "Username must be at least 4 characters").max(14, "Username must be at most 14 characters"),
   password: string().required("Password is required").min(8, "Password must be at least 8 characters"),
 })
 
 export const registerSchema = object({
-  username: string().required("Username is required").min(4, "Username must be at least 4 characters").max(20, "Username must be at most 20 characters"),
+  username: string().required("Username is required").min(4, "Username must be at least 4 characters").max(14, "Username must be at most 14 characters"),
   password: string().required("Password is required").min(8, "Password must be at least 8 characters"),
   accessCode: string().required("Access code is required")
 })
@@ -51,6 +55,7 @@ export function LoginForm({
   const [touched, setTouched] = useState<{[key: string]: boolean}>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string>("");
+  const router = useRouter();
 
   const validateForm = async () => {
     try {
@@ -107,6 +112,12 @@ export function LoginForm({
         // If result is returned, it's an error message
         setServerError(result);
       }
+      else {
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 500)
+
+      }
       // If no result, redirect should have happened
     } catch (error) {
       if (error.inner) {
@@ -115,7 +126,8 @@ export function LoginForm({
           validationErrors[err.path] = err.message;
         });
         setErrors(validationErrors);
-      } else {
+      } else if (error.message != 'NEXT_REDIRECT') {
+        console.log("Unexpected error:", error);
         setServerError("An unexpected error occurred");
       }
     } finally {
@@ -144,6 +156,13 @@ export function LoginForm({
                   {serverError}
                 </div>
               )}
+              {
+                !serverError && (
+                  <div className={cn("p-3 rounded-md bg-green-50 border border-green-200", successMessageClass)}>
+                    Successfully logged in! Redirecting...
+                  </div>
+                )
+              }
               <div className="grid gap-3">
                 <Label htmlFor="username">Username</Label>
                 <Input
@@ -236,6 +255,7 @@ export function RegisterForm({
   const [touched, setTouched] = useState<{[key: string]: boolean}>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string>("");
+  const router = useRouter();
 
   const validateForm = async () => {
     try {
@@ -262,6 +282,7 @@ export function RegisterForm({
     setFormData(prev => ({ ...prev, [name]: value }));
     // Clear server error when user starts typing
     if (serverError) setServerError("");
+
     // Mark field as touched when user starts typing
     if (!touched[name]) {
       setTouched(prev => ({ ...prev, [name]: true }));
@@ -293,6 +314,12 @@ export function RegisterForm({
         // If result is returned, it's an error message
         setServerError(result);
       }
+      else {
+        
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 500)
+      }
       // If no result, redirect should have happened
     } catch (error) {
       if (error.inner) {
@@ -301,7 +328,7 @@ export function RegisterForm({
           validationErrors[err.path] = err.message;
         });
         setErrors(validationErrors);
-      } else {
+      } else if (error.message != 'NEXT_REDIRECT') {
         setServerError("An unexpected error occurred");
       }
     } finally {
@@ -329,6 +356,11 @@ export function RegisterForm({
               {serverError && (
                 <div className={cn("p-3 rounded-md bg-red-50 border border-red-200", errorMessageClass)}>
                   {serverError}
+                </div>
+              )}
+              {!serverError && (
+                <div className={cn("p-3 rounded-md bg-green-50 border border-green-200", successMessageClass)}>
+                  Account created successfully! Redirecting to dashboard...
                 </div>
               )}
               <div className="grid gap-3">
