@@ -23,6 +23,7 @@ import {
     UserGroupIcon,
     ClipboardIcon,
     CodeBracketSquareIcon,
+    CodeBracketIcon,
 } from "@heroicons/react/24/outline";
 
 
@@ -37,7 +38,7 @@ const general: Section[] = [
     {
         label: 'Home',
         icon: HomeIcon,
-        url: '#',
+        url: '/dashboard',
         permissions: [] as UserPermissions[]
     },
     /*
@@ -47,13 +48,13 @@ const general: Section[] = [
         url: '#',
         permissions: [] as UserPermissions[]
     },
+    */
     {
         label: 'Problems',
         icon: CodeBracketIcon,
-        url: '#',
+        url: '/dashboard/problems',
         permissions: [] as UserPermissions[],
     },
-    */
     {
         label: 'Editor',
         icon: CodeBracketSquareIcon,

@@ -84,7 +84,6 @@ export default function LaunchCard({ username }: { username: string }) {
             <div className="space-y-3">
               {startedProblems.map((problem: FetchedProblem, index) => {
                 
-                console.log("Problem:", problem);
                 return ( <Link key={index} href={`/editor?id=${problem.problem_id}`}>
                   <div className="group flex items-center justify-between p-3 hover:bg-muted/50 transition-colors cursor-pointer rounded-lg">
                     <div className="flex items-center space-x-3 flex-1">
@@ -146,10 +145,10 @@ export function NewProblemDialog({
   problems: Problem[]
 }) {
   const [level, setLevel] = React.useState("")
-  const [year, setYear] = React.useState(0)
+  const [year, setYear] = React.useState("") // Change from number to string
   const [problem, setProblem] = React.useState("")
   const [filteredProblems, setFilteredProblems] = React.useState<{ value: string; label: string; }[]>([]);
-  const [availableYears, setAvailableYears] = React.useState<{ value: number; label: string; }[]>([]);
+  const [availableYears, setAvailableYears] = React.useState<{ value: string; label: string; }[]>([]); // Change value type to string
   const [availableLevels, setAvailableLevels] = React.useState<{ value: string; label: string; }[]>([]);
 
   // Reset problem when level changes
@@ -178,11 +177,11 @@ export function NewProblemDialog({
     }));
     setFilteredProblems(allProblems);
 
-    // Get all unique years from problems
+    // Get all unique years from problems - convert to strings
     const years = [...new Set(problems.map(p => p.problem_year))]
       .sort((a, b) => b - a)
       .map(year => ({
-        value: year,
+        value: year.toString(), // Convert to string
         label: year.toString()
       }));
     setAvailableYears(years);
@@ -208,7 +207,8 @@ export function NewProblemDialog({
     }
 
     if (year) {
-      filtered = filtered.filter(p => p.problem_year === year);
+      // Convert year string back to number for comparison
+      filtered = filtered.filter(p => p.problem_year === parseInt(year));
     }
     
     setFilteredProblems(filtered.map((problem: Problem) => ({
@@ -221,7 +221,7 @@ export function NewProblemDialog({
     onComplete(problem);
     onOpenChange(false);
     setLevel("");
-    setYear(0);
+    setYear(""); // Reset to empty string
     setProblem("");
   };
 

@@ -15,7 +15,7 @@ export default async function Layout({
     return (
         <SidebarProvider defaultOpen={defaultOpen}>
             <AppSidebar />
-            <main>
+            <main className="w-full">
                 {children}
             </main>
         </SidebarProvider>

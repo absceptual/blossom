@@ -17,8 +17,8 @@ export default async function Dashboard() {
     const topUsers: RankProfile[] = leaderboardData?.topUsers;
 
     return (
-        <div className="grid grid-rows-[auto_1fr] min-h-screen">
-            <div className="w-screen px-4 md:px-8 py-6">
+        <div className="grid grid-rows-[auto_1fr] min-h-screen overflow-hidden">
+            <div className="w-full px-4 md:px-8 py-6">
                 <QuickLaunch username={session?.username as string} />
             </div>
             {/* Top section with constrained width */}
@@ -29,7 +29,7 @@ export default async function Dashboard() {
                 <div className="col-span-1"><Component username={session?.username as string} /></div>
             </div>
             {/* Bottom section full width */}
-            <div className="w-screen grid grid-cols-4 py-6 items-stretch">
+            <div className="w-full grid grid-cols-4 py-6 items-stretch">
                 <div className="col-span-2 px-2 md:px-8">
                     <SubmissionsCard title="Site Recent Submissions" description="Site recently submitted problems." username={session?.username}  submissions={await getGlobalRecentSubmissions(7)} showUser={true} />
                 </div>
