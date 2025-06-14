@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect, useRef, createContext } from "react";
 import { useSearchParams } from 'next/navigation'
 import { getSavedCode, getTestcaseInput, saveCode } from "@/actions/editor";
 import Topbar from "@/components/editor/topbar";
@@ -8,50 +8,74 @@ import Container from "@/components/editor/container";
 import PageSuspense from '@/components/shared/PageSuspense';
 import { EditorInfo } from "@/types/editor";
 
+
 const JAVA_BOILERPLATE = `import java.util.*;
 import java.io.*;
+import java.math.*;
+import java.time.*;
+import java.time.format.*;
+
+import static java.lang.System.out;
+
+class Solution {
+    Scanner in;
+    void solve() {
+        
+    }
+}
 
 public class Main {
-    public static void main(String[] args) throws IOException {
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-        StringTokenizer st;
-        
-        // Read input
-        // Example: int n = Integer.parseInt(br.readLine());
-        // Example: st = new StringTokenizer(br.readLine());
-        // Example: int a = Integer.parseInt(st.nextToken());
-        
-        // Your solution here
-        
-        // Output result
-        // System.out.println(result);
+    public static void main(String[] args) {
+        Solution solution = new Solution();
+        solution.in = new Scanner(System.in);
+        solution.solve();
     }
 }`;
 
 
+export const ProblemContext = createContext(undefined);
+
+export default function Page() {
+  return (
+    <Suspense fallback={PageSuspense()}>
+      <EditorInstance />
+    </Suspense>
+  );
+}
 
 function EditorInstance() {
   const searchParams = useSearchParams();
   const problemId = searchParams.get("id");
 
+  
+
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const [code, setCode] = useState<string>("// Loading code...");
   const [codeLoaded, setCodeLoaded] = useState<boolean>(false);
   const [activeFileId, setActiveFileId] = useState('input');
-
+  const codeInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [inputContent, setInputContent] = useState<string>("");
   const [outputContent, setOutputContent] = useState<string>("");
   const [compilationContent, setCompilationContent] = useState<string>("");
   const [errorContent, setErrorContent] = useState<string>("");
   
+
   useEffect(() => {
     if (problemId) {
+      setCodeLoaded(false);
       console.log("Loading code for problem ID:", problemId);
-      getSavedCode(problemId).then(setCode);
-      getTestcaseInput(problemId).then(setInputContent);
-      setCodeLoaded(true);
+      Promise.all([
+        getSavedCode(problemId).then(setCode),
+        getTestcaseInput(problemId).then(setInputContent)
+      ]).then(() => {
+        setCodeLoaded(true);  // Now this only happens after code is loaded
+      });
     }
     else {
       setCode(JAVA_BOILERPLATE)
+      setCodeLoaded(true);
     }
   }, [problemId]); // Re-run if the problem ID changes
 
@@ -59,18 +83,23 @@ function EditorInstance() {
     if ( !codeLoaded ) 
       return; 
 
-    const timer = setTimeout(() => {
+    setSaveStatus('saving');
+    const timer = setTimeout(async () => {
       if (problemId) {
-        // TODO: Replace with dynamic username retrieval
-        saveCode(problemId, code)
+        try {
+          const result = await saveCode(problemId, code);
+          setSaveStatus(result === 'success' ? 'saved' : 'error');
+        } catch (error) {
+          console.error('Save failed:', error);
+          setSaveStatus('error');
+        }
       }
-    }, 500);
+    }, 1500);
 
     return () => {
       clearTimeout(timer);
     }
-  }, [code, problemId, codeLoaded]); // Re-run if code or problem ID changes
-  // This function will be called by the Topbar after the submission
+  }, [code, problemId, codeLoaded]); 
 
   const editorInfo: EditorInfo = {
     code: { content: code, updater: setCode },
@@ -80,28 +109,23 @@ function EditorInstance() {
     error: { content: errorContent, updater: setErrorContent },
     codeLoaded: true,
     setActiveFileId: setActiveFileId,
-    activeFileId: activeFileId
+    activeFileId: activeFileId,
+    codeInputRef: codeInputRef,
+    fileInputRef: fileInputRef,
+    isCreateDialogOpen: isCreateDialogOpen,
+    setIsCreateDialogOpen: setIsCreateDialogOpen,
+    saveStatus: saveStatus
   };
 
   
   return (
-    <div className="flex h-screen bg-neutral-800 flex-col">
-          <Topbar
-            editorInfo={editorInfo}
-            problemId={problemId} 
-          />
-          <div className="w-py-10"></div>
-          <Container
-            editorInfo={editorInfo}
-            problemId={problemId}
-          />
-      </div>
-  )
+      <main className="flex h-screen bg-neutral-800 flex-col">
+        <ProblemContext.Provider value={problemId}>
+            <Topbar editorInfo={editorInfo} />
+            <div className="w-py-10"></div>
+            <Container editorInfo={editorInfo} />
+        </ProblemContext.Provider>
+      </main>
+    );
 }
-export default function Page() {
-  return (
-    <Suspense fallback={PageSuspense()}>
-      <EditorInstance />
-    </Suspense>
-  );
-}
+

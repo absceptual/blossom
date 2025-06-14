@@ -1,46 +1,23 @@
-
-import React from "react";
+import React, { useContext } from "react";
 import Editor from '@monaco-editor/react';
-import Widgets from '@/components/editor/widgets';
+import Widgets from '@/components/editor/side-editor';
 import { EditorInfo } from "@/types/editor";
-import { getSavedCode } from "@/actions/editor";
+import SideEditor from "@/components/editor/side-editor";
+import { ProblemContext } from "@/app/editor/page";
 import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable"
+    ResizableHandle,
+    ResizablePanel,
+    ResizablePanelGroup,
+  } from "@/components/ui/resizable"
 
-export async function downloadLocalCode(code: string) {
-    const blob = new Blob([code], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Main.java`
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
-export async function downloadCode(problemId: string) {
-    const blob = new Blob([await getSavedCode(problemId)], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${problemId}.java`
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
 
 export default function Container({
-    problemId,
     editorInfo
 }: {
-    problemId: string,
     editorInfo: EditorInfo
 }) {
+    const problemId = useContext(ProblemContext);
+    
     return (
         <div className="flex flex-row flex-auto ">
             <ResizablePanelGroup direction="horizontal">
@@ -57,13 +34,28 @@ export default function Container({
                             </ResizablePanel >
                             <ResizableHandle className="bg-neutral-950"/>
                             <ResizablePanel className="flex-1">
-                            <Widgets problemId={problemId} editorInfo={editorInfo} />
+                            <SideEditor editorInfo={editorInfo} />
                             </ResizablePanel>
                         </ResizablePanelGroup>
-                        : <Widgets problemId={problemId} editorInfo={editorInfo} />}
+                        : <Widgets editorInfo={editorInfo} />}
                     </ResizablePanel>
                 
             </ResizablePanelGroup>   
         </div>
     )
+}
+
+export async function downloadCode(code: string) {
+    const blob = new Blob([code], { 
+        type: "text/java"
+    });
+    
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Main.java`
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }

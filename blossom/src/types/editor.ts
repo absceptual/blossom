@@ -14,14 +14,11 @@ export type EditorInfo = {
     codeLoaded: boolean;
     activeFileId: string;
     setActiveFileId: React.Dispatch<React.SetStateAction<string>>;
+    codeInputRef: React.RefObject<HTMLInputElement>;
+    fileInputRef: React.RefObject<HTMLInputElement>;
+    isCreateDialogOpen: boolean;
+    setIsCreateDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    saveStatus: 'saved' | 'saving' | 'error';
 };
 
-export interface SubmissionResult {
-  compile_output?: string;
-  status: {
-    id: number;
-    description: string;
-  };
-  stdout?: string;
-  stderr?: string;
-}
+
