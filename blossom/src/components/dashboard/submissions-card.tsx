@@ -137,10 +137,21 @@ export function SubmissionDetailsCard({ submission, problem, showUser = true }) 
 
 export function formatTimeAgo(dateStr: string | Date): string {
     // Parse the date string as UTC (which is how it's stored in the database)
-    const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
-    const now = new Date(new Date().toLocaleDateString('en-US', {
-        timeZone: "America/Chicago"
-    }));
+    let date: Date;
+    if (typeof dateStr === 'string') {
+        // If no timezone info in string, assume it's CST and convert to UTC
+        if (!dateStr.includes('T') || (!dateStr.includes('+') && !dateStr.endsWith('Z'))) {
+            // Manually adjust for CST offset (UTC-6, or UTC-5 during DST)
+            const tempDate = new Date(dateStr);
+            const cstOffset = 6 * 60; // CST is UTC-6 (in minutes)
+            date = new Date(tempDate.getTime() + (cstOffset * 60 * 1000));
+        } else {
+            date = new Date(dateStr);
+        }
+    } else {
+        date = dateStr;
+    }
+    const now = new Date();
 
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 

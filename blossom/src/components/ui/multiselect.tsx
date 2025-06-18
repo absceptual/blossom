@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/popover"
 
 
-export function Combobox({disabled, searchPlaceholder, selectPlaceholder, emptyPlaceholder, options, value, setValue}) {
+export function Multibox({disabled, searchPlaceholder, selectPlaceholder, emptyPlaceholder, options, value, setValue}) {
   const [open, setOpen] = React.useState(false)
 
   return (
@@ -30,7 +30,7 @@ export function Combobox({disabled, searchPlaceholder, selectPlaceholder, emptyP
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={`w-full justify-between font-normal`}
+          className={`w-full justify-between`}
           disabled={disabled ? true : false}
         >
           {value
@@ -41,7 +41,7 @@ export function Combobox({disabled, searchPlaceholder, selectPlaceholder, emptyP
       </PopoverTrigger>
       <PopoverContent align="start" className="w-full p-0">
         <Command>
-          <CommandInput placeholder={selectPlaceholder} className="h-9 w-full" />
+          <CommandInput placeholder={selectPlaceholder} className="h-9" />
           <CommandList>
             <CommandEmpty>{emptyPlaceholder}</CommandEmpty>
             <CommandGroup>

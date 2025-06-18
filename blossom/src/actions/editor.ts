@@ -57,7 +57,7 @@ export async function getTestcaseInput(problemName: string) {
     const session = await verifySession();
     if (!session) return "// User not authenticated";
     
-    const filePath = `${dataDir}/${problemName}/sample.in`;
+    const filePath = `${dataDir}/${problemName}/sample/${problemName}.dat`;
     try {  
         const blob = await head(filePath);
         const response = await fetch(blob.url);
@@ -75,7 +75,7 @@ export async function getTestcaseOutput(problemName: string) {
     const session = await verifySession();
     if (!session) return "// User not authenticated";
 
-    const filePath = `${dataDir}/${problemName}/sample.out`;
+    const filePath = `${dataDir}/${problemName}/sample/${problemName}.out`;
     try {
         const blob = await head(filePath);
         const response = await fetch(blob.url);

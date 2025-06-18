@@ -35,7 +35,7 @@ export default function User({
                 </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="start" className="py-2 w-[var(--radix-dropdown-menu-trigger-width)]" >
-                <DropdownMenuItem>
+                <DropdownMenuItem disabled>
                     <span>Account</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={logout}>

@@ -21,7 +21,6 @@ import {
     HomeIcon, 
     ServerStackIcon,
     UserGroupIcon,
-    ClipboardIcon,
     CodeBracketSquareIcon,
     CodeBracketIcon,
 } from "@heroicons/react/24/outline";
@@ -58,7 +57,7 @@ const general: Section[] = [
     {
         label: 'Editor',
         icon: CodeBracketSquareIcon,
-        url: 'editor',
+        url: '/editor',
         permissions: [] as UserPermissions[],
     },
     /*
@@ -83,12 +82,6 @@ const serverManagement: Section[] = [
         icon: UserGroupIcon,
         url: '#',
         permissions: [UserPermissions.MANAGE_USERS] as UserPermissions[]
-    },
-    {
-        label: 'Problems',
-        icon: ClipboardIcon,
-        url: '#',
-        permissions: [UserPermissions.MANAGE_PROBLEMS] as UserPermissions[],
     },
 ]
 
@@ -143,7 +136,6 @@ export async function AppSidebar() {
             <SidebarFooter>
                 <div className="mb-3">
                     <User username={session?.username} permissions={permissions} />
-
                 </div>
             </SidebarFooter>
         </Sidebar>

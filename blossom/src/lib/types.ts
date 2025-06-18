@@ -7,6 +7,7 @@ export enum UserPermissions {
     MANAGE_USERS = 3,
     MANAGE_PROBLEMS = 4,
     MANAGEMENT_ACCESS = 5,
+    DELETE_PROBLEMS = 6,
 }
 
 

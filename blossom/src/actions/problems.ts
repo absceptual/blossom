@@ -1,6 +1,10 @@
 "use server"
 import { verifySession } from "@/lib/dal";
+import { decrypt } from "@/lib/session";
+import { UserPermissions } from "@/lib/types";
+import { hasPermission } from "@/lib/utilities";
 import { Problem, FetchedProblem, Submission, SubmissionStatusType } from "@/types/submission";
+import { del, list } from "@vercel/blob";
 import postgres from 'postgres'
 
 if (!process.env.DATABASE_URL) {
@@ -37,6 +41,33 @@ export async function getCurrentEditorSubmission(problemId: string) {
     return submission;
 }
 
+export async function deleteProblem(problemId: string) {
+    const session = await verifySession();
+    if (!session) return false;
+
+    const permissions = (await decrypt(session)).permissions;
+    if (!hasPermission(permissions, [UserPermissions.DELETE_PROBLEMS]))
+        return false;
+
+    try {
+        // Delete problem from the database
+        await sql`
+            DELETE FROM problems
+            WHERE problem_id = ${problemId}::text
+        `;
+
+        // Delete associated files from blob storage
+        await Promise.all([
+            list({ prefix: `data/${problemId}/sample/` }).then(blobs => blobs.blobs.forEach(blob => del(blob.url))),
+            list({ prefix: `data/${problemId}/judge/` }).then(blobs => blobs.blobs.forEach(blob => del(blob.url)))
+        ]);
+
+        return true;
+    } catch (error) {
+        console.error('Error deleting problem:', error);
+        return false;
+    }
+}
 export async function getRecentUserSubmissionsByProblem(problemId: string, username: string, count: number) {
     const session = await verifySession();
     if (!session) return null;
@@ -101,6 +132,35 @@ export async function getProblem(problemId: string) {
     `;
 
     return problem[0] as Problem;
+}
+
+export async function getExistingProblemFiles(problemId: string) {
+    const session = await verifySession();
+    if (!session) return null;
+
+    const [sampleBlobs, judgeBlobs] = await Promise.all([
+        list({ prefix: `data/${problemId}/sample/` }),
+        list({ prefix: `data/${problemId}/judge/` })
+    ]);
+
+    // Return blob metadata instead of File objects
+    const sampleFileMetadata = sampleBlobs.blobs.map(blob => ({
+        url: blob.url,
+        name: blob.pathname.split('/').pop() || '',
+        size: blob.size,
+        uploadedAt: blob.uploadedAt.getTime(),
+        type: 'text/plain'
+    })).filter(blob => blob.name !== ''); // Filter out empty names
+
+    const judgeFileMetadata = judgeBlobs.blobs.map(blob => ({
+        url: blob.url,
+        name: blob.pathname.split('/').pop() || '',
+        size: blob.size,
+        uploadedAt: blob.uploadedAt.getTime(),
+        type: 'text/plain'
+    })).filter(blob => blob.name !== '');
+
+    return { sampleFiles: sampleFileMetadata, judgeFiles: judgeFileMetadata };
 }
 
 export async function getAvailableProblems() {

@@ -74,6 +74,7 @@ function RunButton({
   const problemId = useContext(ProblemContext) ?? "";
 
   async function run(useSample = true) {
+    setStatus("Submitting");
     if (editorInfo.saveStatus !== 'saved' && editorInfo.saveStatus !== 'saving') {
       saveCode(problemId, editorInfo.code.content);
     }
