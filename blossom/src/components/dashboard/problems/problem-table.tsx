@@ -34,7 +34,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { ModifyProblemDialog } from "@/components/dashboard/problems/modify-problem";
 
 
 interface DataTableProps<TData, TValue> {
