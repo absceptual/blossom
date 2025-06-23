@@ -216,7 +216,6 @@ export async function submitJudge(code: string, input: string, problemId: string
             });
         
         const response = await fetch(url, options);
-        console.log("Judge response:", response);
         result = await response.json();
     } catch (error) {
         console.error("Error in submitJudge:", {

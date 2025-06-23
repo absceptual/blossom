@@ -5,6 +5,7 @@ import { decrypt } from '@/lib/session'
 import { cache } from 'react'
 import { redirect } from 'next/navigation'
 import postgres from 'postgres'
+import { UserPermissions } from './types'
 
 const sql = postgres(process.env.DATABASE_URL);
 export const verifySession = cache(async () => {
@@ -19,5 +20,5 @@ export const verifySession = cache(async () => {
   if (user.length === 0)
     redirect('/portal');
 
-  return { isAuth: true, username: session?.username, permissions: session?.permissions } as const;
+  return { isAuth: true as boolean, username: session?.username as string, permissions: session?.permissions as UserPermissions[] } as const;
 })

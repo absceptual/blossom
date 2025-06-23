@@ -280,7 +280,7 @@ export function RegisterForm({
 
   useEffect(() => {
     validateForm();
-  }, [formData]);
+  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

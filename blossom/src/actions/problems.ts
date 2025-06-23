@@ -1,6 +1,5 @@
 "use server"
 import { verifySession } from "@/lib/dal";
-import { decrypt } from "@/lib/session";
 import { UserPermissions } from "@/lib/types";
 import { hasPermission } from "@/lib/utilities";
 import { Problem, FetchedProblem, Submission, SubmissionStatusType } from "@/types/submission";
@@ -45,7 +44,7 @@ export async function deleteProblem(problemId: string) {
     const session = await verifySession();
     if (!session) return false;
 
-    const permissions = (await decrypt(session)).permissions;
+    const permissions = session.permissions as UserPermissions[];
     if (!hasPermission(permissions, [UserPermissions.DELETE_PROBLEMS]))
         return false;
 

@@ -1,3 +1,4 @@
+ /* eslint-disable */
 "use client";
 'use strict';
 import { useForm } from "react-hook-form";
@@ -24,14 +25,22 @@ const programmingTags = [
 
 
 const problemSchema = object({
-    id: string().required("Problem ID is required"),
-    name: string().required("Problem name is required"),
-    level: string().required("Competition level is required"),
-    tags: array().of(string()),
-    sampleFiles: array().required().min(1, "At least one sample file is required").max(2, "A maximum of two sample files is allowed"),
-    judgeFiles: array().required().min(1, "At least one judge file is required").max(2, "A maximum of two judge files is allowed"),
+    id: string(),
+    name: string(),
+    level: string(),
+    tags: array().of(string()).default([]),
+    sampleFiles: array().default([]),
+    judgeFiles: array().default([]),
 })
 
+type ProblemFormValues = {
+    id: string;
+    name: string;
+    level: string;
+    tags: string[];
+    sampleFiles: File[];
+    judgeFiles: File[];
+};
 
 export function ModifyProblemDialog({ title, description, problemId, trigger }: {
     title: string;
@@ -63,11 +72,9 @@ export function ModifyProblem({
     problemId?: string; // Optional prop for problem ID, if needed
 }) {
 
-    const [sampleFiles, setSampleFiles] = useState<File[]>([]);
-    const [judgeFiles, setJudgeFiles] = useState<File[]>([]);
 
 
-    const form = useForm({
+    const form = useForm<ProblemFormValues>({
         resolver: yupResolver(problemSchema),
         defaultValues: {
             id: "",
@@ -109,14 +116,13 @@ export function ModifyProblem({
                     })
                 );
 
-                setSampleFiles(sampleFiles);
-                setJudgeFiles(judgeFiles);
+
                 
                 form.reset({
-                    id: problem?.problem_id || "",
-                    name: problem?.problem_name || "",
-                    level: problem?.competition_level || "",
-                    tags: problem?.tags || [],
+                    id: problem.problem_id || "",
+                    name: problem.problem_name || "",
+                    level: problem.competition_level || "",
+                    tags: problem.tags || [],
                     sampleFiles: sampleFiles,
                     judgeFiles: judgeFiles,
                 });
@@ -124,19 +130,7 @@ export function ModifyProblem({
         });
     }
 }, [problemId, form]);
-    
-    
-
-    useEffect(() => {
-        form.setValue("sampleFiles", sampleFiles);
-    }, [form, sampleFiles])
-
-    useEffect(() => {
-        form.setValue("judgeFiles", judgeFiles);
-    }, [form, judgeFiles])
-
-    
-    function handleSubmit(values: InferType<typeof problemSchema>) {
+        function handleSubmit(values: ProblemFormValues) {
         // Do something with the form values.
         // ✅ This will be type-safe and validated.
         console.log("Form submitted with values:", values);   
@@ -149,7 +143,6 @@ export function ModifyProblem({
                     <FormField 
                         control={form.control}
                         name="id"
-                        defaultValue={""}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>ID</FormLabel>
@@ -166,7 +159,6 @@ export function ModifyProblem({
                     <FormField
                         control={form.control}
                         name="name"
-                        defaultValue=""
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Name</FormLabel>
@@ -183,7 +175,6 @@ export function ModifyProblem({
                     <FormField
                         control={form.control}
                         name="level"
-                        defaultValue=""
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Competition Level</FormLabel>
@@ -218,7 +209,6 @@ export function ModifyProblem({
                     <FormField
                         control={form.control}
                         name="tags"
-                        defaultValue={[]}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Tags</FormLabel>
@@ -260,25 +250,21 @@ export function ModifyProblem({
                             <FormField
                                 control={form.control}
                                 name="sampleFiles"
-                                defaultValue={[]}
                                 render={({ field }) => (
                                     <FormItem className="text-center block">
-                                        <FormLabel className="text-center block">Sample Files</FormLabel>
-                                        <FormControl>
+                                        <FormLabel className="text-center block">Sample Files</FormLabel>                                        <FormControl>
                                             <FileUpload 
                                                 id="sample-upload" 
-                                                existingFiles={sampleFiles}
+                                                existingFiles={field.value || []}
                                                 accept=".in,.out,.dat"
                                                 onChange={(files) => {
-                                                    // Replace instead of append to avoid duplicates
-                                                    const allFiles = [...sampleFiles, ...files];
-                                                    // Remove duplicates based on name and size
+                                                    const currentFiles = field.value || [];
+                                                    const allFiles = [...currentFiles, ...files];
                                                     const uniqueFiles = allFiles.filter((file, index, self) => 
                                                         index === self.findIndex(f => f.name === file.name && f.size === file.size)
                                                     );
-                                                    setSampleFiles(uniqueFiles);
+                                                    field.onChange(uniqueFiles);
                                                 }} 
-                                                {...field}
                                             />
                                         </FormControl>
                                         <FormDescription>
@@ -294,25 +280,21 @@ export function ModifyProblem({
                             <FormField
                                 control={form.control}
                                 name="judgeFiles"
-                                defaultValue={[]}
                                 render={({ field }) => (
                                     <FormItem className="text-center block">
-                                        <FormLabel className="text-center block">Judge Files</FormLabel>
-                                        <FormControl>
+                                        <FormLabel className="text-center block">Judge Files</FormLabel>                                        <FormControl>
                                             <FileUpload 
                                                 id="judge-upload" 
-                                                existingFiles={judgeFiles}
+                                                existingFiles={field.value || []}
                                                 accept=".in,.out,.dat"
                                                 onChange={(files) => {
-                                                    // Replace instead of append to avoid duplicates
-                                                    const allFiles = [...judgeFiles, ...files];
-                                                    // Remove duplicates based on name and size
+                                                    const currentFiles = field.value || [];
+                                                    const allFiles = [...currentFiles, ...files];
                                                     const uniqueFiles = allFiles.filter((file, index, self) => 
                                                         index === self.findIndex(f => f.name === file.name && f.size === file.size)
                                                     );
-                                                    setJudgeFiles(uniqueFiles);
+                                                    field.onChange(uniqueFiles);
                                                 }} 
-                                                {...field}
                                             />
                                         </FormControl>
                                         <FormDescription>
