@@ -187,13 +187,32 @@ export function NewProblemDialog({
     setAvailableYears(years);
 
     // Get all unique competition levels from problems
-    const levels = [...new Set(problems.map(p => p.competition_level))]
-      .sort() // Sort alphabetically
-      .map(level => ({
-        value: level,
-        label: level
-      }));
-    setAvailableLevels(levels);
+    setAvailableLevels([
+      {
+        value: "Invitational A",
+        label: "Invitational A"
+      },
+      {
+        value: "Invitational B",
+        label: "Invitational B"
+      },
+      {
+        value: "District",
+        label: "District"
+      },
+      {
+        value: "Region",
+        label: "Region"
+      },
+      {
+        value: "State",
+        label: "State"
+      },
+      {
+        value: "Other",
+        label: "Other"
+      }
+    ])
   }, [open, problems]);
 
   // Filter problems when level or year changes

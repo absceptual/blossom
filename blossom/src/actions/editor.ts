@@ -5,16 +5,14 @@
 import { verifySession } from '@/lib/dal';
 import { SubmissionStatusType } from '@/types/submission';
 import { createSubmissionEntry } from '@/actions/problems';
-import { put, head } from '@vercel/blob';
 import { SubmissionResult } from '@/types/submission';
+import { retrieveFile, uploadFile } from '@/actions/azure'
 
-const dataDir = "data"
 
-const JUDGE_URL = "https://judge0-extra-ce.p.rapidapi.com";
+const JUDGE_URL = "http://52.186.173.143:2358";
 
 const JUDGE_HEADERS = {
-    'x-rapidapi-key': process.env.JUDGE_API_KEY || "",
-    'x-rapidapi-host': "judge0-extra-ce.p.rapidapi.com",
+    'X-Auth-Token': process.env.JUDGE_API_KEY || "",
     'Content-Type': 'application/json'
 };
 
@@ -23,22 +21,12 @@ export async function saveCode(problemId: string, code: string) {
     if (!session) return "// User not authenticated";
 
     const username: string = session?.username as string;
-    const userSubmissionPath = `${dataDir}/${problemId}/submissions/${username}.java`;
+    const userSubmissionPath = `${problemId}/submissions/${username}.java`;
     
     try {
+        await uploadFile(userSubmissionPath, code);
         
-        // Try to put the blob
-        const blobResult = await put(userSubmissionPath, code, {
-            access: 'public',
-            contentType: 'text/x-java-source; charset=utf-8',
-            addRandomSuffix: false, // Ensure exact path
-            allowOverwrite: true,
-        });
-
-        // Try to read it back immediately
-        const response = await fetch(blobResult.url, { next: { revalidate: 0 }});
-        const savedContent = await response.text();
-        
+        const savedContent =  (await retrieveFile(userSubmissionPath)).toString()
         if (savedContent !== code) {
             throw new Error(`Local content for ${username} in problem ${problemId} doesn't match content on server.`);
         }
@@ -57,17 +45,13 @@ export async function getTestcaseInput(problemName: string) {
     const session = await verifySession();
     if (!session) return "// User not authenticated";
     
-    const filePath = `${dataDir}/${problemName}/sample/${problemName}.dat`;
+    const filePath = `${problemName}/sample/${problemName}.dat`;
     try {  
-        const blob = await head(filePath);
-        const response = await fetch(blob.url);
-        if (!response.ok)
-            throw new Error(`Failed to fetch file: ${response.statusText}`);
-        return await response.text();
+        return (await retrieveFile(filePath)).toString()
     }
     catch (error) {
         console.error("Error in getTestcaseInput:", error);
-        return "// Error reading file";
+        return "// Error reading file (problem may have no testcase input)";
     }
 }
 
@@ -75,38 +59,25 @@ export async function getTestcaseOutput(problemName: string) {
     const session = await verifySession();
     if (!session) return "// User not authenticated";
 
-    const filePath = `${dataDir}/${problemName}/sample/${problemName}.out`;
+    const filePath = `${problemName}/sample/${problemName}.out`;
     try {
-        const blob = await head(filePath);
-        const response = await fetch(blob.url);
-        if (!response.ok)
-            throw new Error(`Failed to fetch file: ${response.statusText}`);
-        return await response.text();
+        return (await retrieveFile(filePath)).toString()
     }
     catch (error) {
         console.error("Error in getTestcaseOutput:", error);
-        return "// Error reading file";
+        return "";
     }
 }
-
-
 
 export async function getSavedCode(problemName: string) {
     const session = await verifySession();
     if (!session) return "// User not authenticated";
 
     const username: string = session?.username as string;
-    const userSubmissionPath =  "data/" + problemName + "/submissions/" + username + ".java";
+    const userSubmissionPath =  `${problemName}/submissions/${username}.java`;
 
     try {
-        const userBlob = await head(userSubmissionPath); // Throws if not found
-        const response = await fetch(`${userBlob.url}?v=${Date.now()}`, { next: { revalidate: 0 }});
-        console.log(`Fetching user's code from blob: ${userBlob.url}`);
-        if (!response.ok) {
-            // This case might be rare if head succeeded, but good to check
-            throw new Error(`Failed to fetch user's code blob: ${response.statusText}`);
-        }
-        return await response.text();
+        return (await retrieveFile(userSubmissionPath)).toString()
     }
     catch (error: any) {
         // Assuming error means the user's submission blob was not found
@@ -114,20 +85,10 @@ export async function getSavedCode(problemName: string) {
         console.log(`User's code at ${userSubmissionPath} not found or error fetching. Attempting to use example`);
 
         try {
-            // Fetch the example code from its blob
-            const exampleBlob = await head("data/example"); // Throws if example not found
-            const exampleResponse = await fetch(exampleBlob.url);
-            if (!exampleResponse.ok) {
-                console.error(`Critical: Failed to fetch example code blob: ${exampleResponse.statusText}`);
-                return "// Error: Example code not available";
-            }
-            const exampleCode = await exampleResponse.text();
-
+            const exampleCode = (await retrieveFile("example.java")).toString();
+            
             // Save this example code as the user's initial code in their blob path
-            await put(userSubmissionPath, exampleCode, {
-                access: 'public',
-                contentType: 'text/x-java-source; charset=utf-8',
-            });
+            await uploadFile(userSubmissionPath, exampleCode);
             console.log(`Initialized ${userSubmissionPath} with example code for user ${username}.`);
             return exampleCode;
         } catch (exampleError: any) {
@@ -150,7 +111,7 @@ export async function submitCustomTestcase(problemName: string, code: string, in
         method: 'POST',
         headers: JUDGE_HEADERS,
         body: JSON.stringify({
-            language_id: 4, // Java
+            language_id: 62, // Java
             source_code: btoa(code), // Base64 encode the code
             stdin: btoa(input), // Base64 encode the input
         })
@@ -169,7 +130,6 @@ export async function submitCustomTestcase(problemName: string, code: string, in
             }
         };
     }
-    console.log("Submission completed for user:", username, "and problem:", problemName);
 };
 
 export async function submitTestcase(problemName: string, code: string) {
@@ -183,7 +143,7 @@ export async function submitTestcase(problemName: string, code: string) {
         method: 'POST',
         headers: JUDGE_HEADERS,
         body: JSON.stringify({
-            language_id: 4, // Java
+            language_id: 62, // Java
             source_code: btoa(code), // Base64 encode the code
             stdin: btoa( await getTestcaseInput(problemName)), // Base64 encode the input
             expected_output: btoa(await getTestcaseOutput(problemName)), // Base64 encode the expected output
@@ -217,8 +177,8 @@ export async function submitJudge(code: string, input: string, problemId: string
     if (!session) return result;
 
     // Get input and output paths from blob storage
-    const inputPath = `${dataDir}/${problemId}/judge/${problemId}.dat`;
-    const outputPath = `${dataDir}/${problemId}/judge/${problemId}.out`;
+    const inputPath = `${problemId}/judge/${problemId}.dat`;
+    const outputPath = `${problemId}/judge/${problemId}.out`;
     const url = JUDGE_URL + "/submissions/?base64_encoded=true&wait=true";
 
     let expectedOutput = null;
@@ -226,20 +186,16 @@ export async function submitJudge(code: string, input: string, problemId: string
     try {    
         // Only fetch input and output if we are submitting a testcase
         if (problemId !== "") {
-            const inputBlob = await head(inputPath);
-            const inputResponse = await fetch(inputBlob.url);
-            if (!inputResponse.ok) {
-                throw new Error(`Failed to fetch input file: ${inputResponse.statusText}`);
+            try {
+                input = (await retrieveFile(inputPath)).toString()
+
+            } catch (error) { 
+                // There might not be a testcase input (usually first problem)
+                input = "";
             }
-            input = await inputResponse.text();
 
             // Fetch output file
-            const outputBlob = await head(outputPath);
-            const outputResponse = await fetch(outputBlob.url);
-            if (!outputResponse.ok) {
-                throw new Error(`Failed to fetch output file: ${outputResponse.statusText}`);
-            }
-            expectedOutput = await outputResponse.text();
+            expectedOutput = (await retrieveFile(outputPath)).toString()
         }
 
         // Submit to Judge0
@@ -247,7 +203,7 @@ export async function submitJudge(code: string, input: string, problemId: string
             method: 'POST',
             headers: JUDGE_HEADERS,
             body: JSON.stringify({
-                language_id: 4, // Java
+                language_id: 62, // Java
                 source_code: btoa(code), // Base64 encode the code
                 stdin: btoa(input), // Base64 encode the input
             })
@@ -260,6 +216,7 @@ export async function submitJudge(code: string, input: string, problemId: string
             });
         
         const response = await fetch(url, options);
+        console.log("Judge response:", response);
         result = await response.json();
     } catch (error) {
         console.error("Error in submitJudge:", {
