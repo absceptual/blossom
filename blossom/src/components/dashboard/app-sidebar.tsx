@@ -22,8 +22,7 @@ import {
     ServerStackIcon,
     UserGroupIcon,
     CodeBracketSquareIcon,
-    CodeBracketIcon,
-    ClipboardIcon
+    CodeBracketIcon
 } from "@heroicons/react/24/outline";
 
 
@@ -81,14 +80,8 @@ const serverManagement: Section[] = [
     {
         label: 'Users',
         icon: UserGroupIcon,
-        url: '#',
+        url: '/dashboard/users',
         permissions: [UserPermissions.MANAGE_USERS] as UserPermissions[]
-    },
-    {
-        label: 'Problems',
-        icon: ClipboardIcon,
-        url: '/dashboard/problems',
-        permissions: [UserPermissions.MANAGE_PROBLEMS] as UserPermissions[]
     },
 ]
 
