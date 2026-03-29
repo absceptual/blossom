@@ -9,7 +9,7 @@ import { SubmissionResult } from '@/types/submission';
 import { retrieveFile, uploadFile } from '@/actions/azure'
 
 
-const JUDGE_URL = "http://52.186.173.143:2358";
+const JUDGE_URL = process.env.JUDGE_URL || "";
 
 const JUDGE_HEADERS = {
     'X-Auth-Token': process.env.JUDGE_API_KEY || "",

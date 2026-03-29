@@ -28,7 +28,7 @@ export async function uploadFile(path, data, length = data.length) {
 
 export async function retrieveFile(path) {
     const dataContainer = await getDataContainer();
-    const streamToBuffer = (stream) => {  
+    const streamToBuffer = (stream) => {
         return new Promise((resolve, reject) => {
             const chunks = []
             stream.on("data", (data) => {
