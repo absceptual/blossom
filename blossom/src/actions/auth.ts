@@ -1,6 +1,6 @@
 'use server'
 import { createSession, deleteSession } from "@/lib/session"
-import { redirect } from "next/navigation";
+import { redirect } from "next/navigation"; // used by logout
 import bcrypt from 'bcrypt';
 import { UserPermissions } from "@/lib/types";
 import postgres from 'postgres';
@@ -45,12 +45,12 @@ export async function signup(formData: FormData) {
         return error.message;
     }
 
-    const hashedPassword = bcrypt.hashSync(password, HASH_ROUNDS);
     const users = await sql`SELECT id FROM users where username = ${username}`;
     if (users.length > 0) {
         return "Username already exists";
     }
 
+    const hashedPassword = await bcrypt.hash(password, HASH_ROUNDS);
     const id = Number((await sql`SELECT COUNT(*) FROM users`)[0].count) + 1;
     const accessCodes = await sql`
         SELECT current_uses, maximum_uses, permissions FROM access_codes WHERE code = ${accessCode}
@@ -77,7 +77,6 @@ export async function signup(formData: FormData) {
     `;
 
     await createSession(username, [...codeEntry.permissions as UserPermissions[]]);
-    redirect("/dashboard");
 }
 
 export async function login(formData: FormData) {
@@ -100,7 +99,7 @@ export async function login(formData: FormData) {
         return "Invalid username or password";
     }
 
-    if (!bcrypt.compareSync(password, user[0].hash.toString())) {
+    if (!await bcrypt.compare(password, user[0].hash.toString())) {
         return "Invalid username or password";
     }
 

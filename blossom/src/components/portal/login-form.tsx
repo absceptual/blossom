@@ -117,10 +117,7 @@ export function LoginForm({
       }
       else {
         setSuccess(true);
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 1000)
-
+        router.push('/dashboard');
       }
       // If no result, redirect should have happened
     } catch (error) {
@@ -280,7 +277,7 @@ export function RegisterForm({
 
   useEffect(() => {
     validateForm();
-  });
+  }, [formData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -322,10 +319,7 @@ export function RegisterForm({
       }
       else {
         setSuccess(true);
-        
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 1000)
+        router.push('/dashboard');
       }
       // If no result, redirect should have happened
     } catch (error) {
@@ -335,7 +329,7 @@ export function RegisterForm({
           validationErrors[err.path] = err.message;
         });
         setErrors(validationErrors);
-      } else {
+      } else if (error.message !== 'NEXT_REDIRECT') {
         setServerError("An unexpected error occurred");
       }
     } finally {
