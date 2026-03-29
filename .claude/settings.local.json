@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs wc:*)",
+      "Bash(find /d/blossom/blossom -type f \\\\\\(-name *.sql -o -name *migration* -o -name *schema* -o -name *.prisma \\\\\\))",
+      "Bash(git ls-tree:*)",
+      "Bash(git:*)"
+    ]
+  }
+}
