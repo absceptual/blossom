@@ -1,0 +1,17 @@
+Starting... 
+C:\Program Files (x86)\Oracle\oci_cli\oci.exe
+--- 
+ServiceError:
+{
+    "client_version": "Oracle-PythonSDK/2.168.3, Oracle-PythonCLI/3.76.2",
+    "code": "CannotParseRequest",
+    "logging_tips": "Please run the OCI CLI command using --debug flag to find more debug information.",
+    "message": "Incorrectly formatted request. Please refer to our documentation for help.",
+    "opc-request-id": "83B1E52B3E07466BB42C405671F206EA/62229E574F44F9DBF096C8694F524419/44D2DF075C5E843E7F8A2A20ABB8F737",
+    "operation_name": "launch_instance",
+    "request_endpoint": "POST https://iaas.us-chicago-1.oraclecloud.com/20160918/instances",
+    "status": 400,
+    "target_service": "compute",
+    "timestamp": "2026-03-29T03:05:20.537438+00:00",
+    "troubleshooting_tips": "See [https://docs.oracle.com/iaas/Content/API/References/apierrors.htm] for more information about resolving this error. If you are unable to resolve this issue, run this CLI command with --debug option and contact Oracle support and provide them the full error message."
+}

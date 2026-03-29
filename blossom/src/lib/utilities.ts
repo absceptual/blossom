@@ -4,5 +4,5 @@ export function hasPermission(current: UserPermissions[], requested: UserPermiss
     if (requested.length === 0) 
         return true;
     
-    return current.every(permission => requested.includes(permission));
+    return requested.every(permission => current.includes(permission));
 }

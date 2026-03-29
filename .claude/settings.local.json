@@ -4,7 +4,10 @@
       "Bash(xargs wc:*)",
       "Bash(find /d/blossom/blossom -type f \\\\\\(-name *.sql -o -name *migration* -o -name *schema* -o -name *.prisma \\\\\\))",
       "Bash(git ls-tree:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(cmd.exe /c \"oci compute instance launch --availability-domain US-CHICAGO-1-AD-1 --compartment-id ocid1.tenancy.oc1..aaaaaaaa3port4tfs5ksgtrl6z4rvkrcgv5om3nubaibm3pxl2i4lmby6xkq --shape VM.Standard.A1.Flex --shape-config {\\\\\"ocpus\\\\\":4,\\\\\"memoryInGBs\\\\\":24} --image-id ocid1.image.oc1.us-chicago-1.aaaaaaaaxeq5wtezmkb2lnn5unvrq3kpc53mztfz45lof6hbcz7q7alzn2cq --subnet-id ocid1.subnet.oc1.us-chicago-1.aaaaaaaammhu2gisrgq6jlegmkmxqs5xdaomw4nmb7ob4dcbdatgwqzmgyqa --assign-public-ip true --ssh-authorized-keys-file %USERPROFILE%\\\\.ssh\\\\id_ed25519.pub --display-name judge0\" 2>&1)",
+      "Bash(cmd.exe /c \"where oci\" 2>&1)",
+      "Bash(cmd.exe /c \"where oci 2>&1 & echo EXIT:%ERRORLEVEL%\" 2>&1)"
     ]
   }
 }

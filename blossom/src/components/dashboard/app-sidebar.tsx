@@ -23,6 +23,7 @@ import {
     UserGroupIcon,
     CodeBracketSquareIcon,
     CodeBracketIcon,
+    ClipboardIcon
 } from "@heroicons/react/24/outline";
 
 
@@ -83,6 +84,12 @@ const serverManagement: Section[] = [
         url: '#',
         permissions: [UserPermissions.MANAGE_USERS] as UserPermissions[]
     },
+    {
+        label: 'Problems',
+        icon: ClipboardIcon,
+        url: '/dashboard/problems',
+        permissions: [UserPermissions.MANAGE_PROBLEMS] as UserPermissions[]
+    },
 ]
 
 function SidebarGroupWrapper({ 
@@ -131,7 +138,7 @@ export async function AppSidebar() {
             <SidebarHeader></SidebarHeader>
             <SidebarContent >
                 <SidebarGroupWrapper name="General" menus={general} permissions={permissions} />
-                <SidebarGroupWrapper name="Server Management" menus={serverManagement} permissions={permissions} />
+                <SidebarGroupWrapper name="Site Management" menus={serverManagement} permissions={permissions} />
             </SidebarContent>
             <SidebarFooter>
                 <div className="mb-3">

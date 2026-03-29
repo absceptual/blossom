@@ -13,13 +13,16 @@ import { DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } fr
 import { Combobox } from "@/components/ui/combobox";
 import { object, string, array, InferType } from 'yup';
 import { yupResolver } from "@hookform/resolvers/yup"
-import { getExistingProblemFiles, getProblem } from "@/actions/problems";
+import { getExistingProblemFiles, getProblem, createProblem, updateProblem, downloadProblemFile } from "@/actions/problems";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PlusIcon } from "@heroicons/react/24/solid";
+import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+import { useRouter } from "next/navigation";
+import { number } from 'yup';
 
 const programmingTags = [
     // Data Structures
-    "Arrays", "Strings", "Linked Lists", "Stacks", "Queues", "Trees", "Binary Trees", 
+    "Arrays", "Strings", "Linked Lists", "Stacks", "Queues", "Trees", "Binary Trees",
     "Heaps", "Hash Tables", "Graphs", "Sets", "Maps",
 ];
 
@@ -28,28 +31,38 @@ const problemSchema = object({
     id: string(),
     name: string(),
     level: string(),
+    year: number().typeError("Year must be a number").integer(),
     tags: array().of(string()).default([]),
-    sampleFiles: array().default([]),
-    judgeFiles: array().default([]),
+    sampleInput: array().default([]),
+    sampleOutput: array().default([]),
+    judgeInput: array().default([]),
+    judgeOutput: array().default([]),
+    statement: array().default([]),
 })
 
 type ProblemFormValues = {
     id: string;
     name: string;
     level: string;
+    year: number;
     tags: string[];
-    sampleFiles: File[];
-    judgeFiles: File[];
+    sampleInput: File[];
+    sampleOutput: File[];
+    judgeInput: File[];
+    judgeOutput: File[];
+    statement: File[];
 };
 
 export function ModifyProblemDialog({ title, description, problemId, trigger }: {
     title: string;
     description: string;
-    problemId?: string; // Optional prop for problem ID, if needed
-    trigger?: React.ReactNode; // Optional trigger prop
-}) { 
+    problemId?: string;
+    trigger?: React.ReactNode;
+}) {
+    const [open, setOpen] = useState(false);
+
     return (
-        <Dialog>
+        <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 {trigger ? trigger : <Button variant="default"><PlusIcon />Create Problem</Button> }
             </DialogTrigger>
@@ -60,19 +73,63 @@ export function ModifyProblemDialog({ title, description, problemId, trigger }: 
                     {description}
                 </DialogDescription>
             </DialogHeader>
-                <ModifyProblem problemId={problemId} />
+                <ModifyProblem problemId={problemId} onSuccess={() => setOpen(false)} />
             </DialogContent>
         </Dialog>
     )
 }
 
+async function triggerDownload(problemId: string, fileType: 'sampleDat' | 'sampleOut' | 'judgeDat' | 'judgeOut' | 'statement') {
+    const result = await downloadProblemFile(problemId, fileType);
+    if (!result) return;
+
+    const byteArray = Uint8Array.from(atob(result.data), c => c.charCodeAt(0));
+    const blob = new Blob([byteArray], { type: result.type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = result.name;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function DownloadButton({ problemId, fileType, label }: { problemId: string; fileType: 'sampleDat' | 'sampleOut' | 'judgeDat' | 'judgeOut' | 'statement'; label: string }) {
+    const [loading, setLoading] = useState(false);
+    return (
+        <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={loading}
+            onClick={async () => {
+                setLoading(true);
+                await triggerDownload(problemId, fileType);
+                setLoading(false);
+            }}
+        >
+            <ArrowDownTrayIcon className="h-4 w-4 mr-1" />
+            {loading ? "Downloading..." : label}
+        </Button>
+    );
+}
+
 export function ModifyProblem({
-    problemId
+    problemId,
+    onSuccess,
 }: {
-    problemId?: string; // Optional prop for problem ID, if needed
+    problemId?: string;
+    onSuccess?: () => void;
 }) {
-
-
+    const router = useRouter();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [serverError, setServerError] = useState<string | null>(null);
+    const [existingFiles, setExistingFiles] = useState<{
+        hasSampleDat: boolean;
+        hasSampleOut: boolean;
+        hasJudgeDat: boolean;
+        hasJudgeOut: boolean;
+        hasStatement: boolean;
+    }>({ hasSampleDat: false, hasSampleOut: false, hasJudgeDat: false, hasJudgeOut: false, hasStatement: false });
 
     const form = useForm<ProblemFormValues>({
         resolver: yupResolver(problemSchema),
@@ -80,74 +137,115 @@ export function ModifyProblem({
             id: "",
             name: "",
             level: "",
+            year: new Date().getFullYear(),
             tags: [],
-            sampleFiles: [],
-            judgeFiles: [],
+            sampleInput: [],
+            sampleOutput: [],
+            judgeInput: [],
+            judgeOutput: [],
+            statement: [],
         },
     });
 
     useEffect(() => {
-    if (problemId) {
-        Promise.all([
-            getProblem(problemId),
-            getExistingProblemFiles(problemId)
-        ]).then(async ([problem, files]) => {
-            if (files) {
-                // Convert metadata to File objects on the client
-                const sampleFiles = await Promise.all(
-                    files.sampleFiles.map(async (fileData) => {
-                        const response = await fetch(fileData.url);
-                        const arrayBuffer = await response.arrayBuffer();
-                        return new File([arrayBuffer], fileData.name, {
-                            type: fileData.type,
-                            lastModified: fileData.uploadedAt
-                        });
-                    })
-                );
+        if (problemId) {
+            Promise.all([
+                getProblem(problemId),
+                getExistingProblemFiles(problemId)
+            ]).then(async ([problem, files]) => {
+                const sampleInput: File[] = [];
+                const sampleOutput: File[] = [];
+                const judgeInput: File[] = [];
+                const judgeOutput: File[] = [];
 
-                const judgeFiles = await Promise.all(
-                    files.judgeFiles.map(async (fileData) => {
-                        const response = await fetch(fileData.url);
-                        const arrayBuffer = await response.arrayBuffer();
-                        return new File([arrayBuffer], fileData.name, {
-                            type: fileData.type,
-                            lastModified: fileData.uploadedAt
-                        });
-                    })
-                );
+                if (files) {
+                    setExistingFiles({
+                        hasSampleDat: files.sampleFiles.some(f => f.name.endsWith('.dat')),
+                        hasSampleOut: files.sampleFiles.some(f => f.name.endsWith('.out')),
+                        hasJudgeDat: files.judgeFiles.some(f => f.name.endsWith('.dat')),
+                        hasJudgeOut: files.judgeFiles.some(f => f.name.endsWith('.out')),
+                        hasStatement: files.hasStatement,
+                    });
 
+                    for (const f of files.sampleFiles) {
+                        if (f.name.endsWith('.dat')) sampleInput.push(new File([f.content], f.name, { type: 'text/plain' }));
+                        else if (f.name.endsWith('.out')) sampleOutput.push(new File([f.content], f.name, { type: 'text/plain' }));
+                    }
+                    for (const f of files.judgeFiles) {
+                        if (f.name.endsWith('.dat')) judgeInput.push(new File([f.content], f.name, { type: 'text/plain' }));
+                        else if (f.name.endsWith('.out')) judgeOutput.push(new File([f.content], f.name, { type: 'text/plain' }));
+                    }
+                }
 
-                
                 form.reset({
                     id: problem.problem_id || "",
                     name: problem.problem_name || "",
                     level: problem.competition_level || "",
+                    year: problem.problem_year || new Date().getFullYear(),
                     tags: problem.tags || [],
-                    sampleFiles: sampleFiles,
-                    judgeFiles: judgeFiles,
+                    sampleInput,
+                    sampleOutput,
+                    judgeInput,
+                    judgeOutput,
+                    statement: [],
                 });
+            });
+        }
+    }, [problemId, form]);
+
+    async function handleSubmit(values: ProblemFormValues) {
+        setIsSubmitting(true);
+        setServerError(null);
+
+        try {
+            const formData = new FormData();
+            formData.set("id", values.id);
+            formData.set("name", values.name);
+            formData.set("level", values.level);
+            formData.set("year", String(values.year));
+            formData.set("tags", JSON.stringify(values.tags));
+
+            if (values.sampleInput?.[0]) formData.set("sampleDat", values.sampleInput[0]);
+            if (values.sampleOutput?.[0]) formData.set("sampleOut", values.sampleOutput[0]);
+            if (values.judgeInput?.[0]) formData.set("judgeDat", values.judgeInput[0]);
+            if (values.judgeOutput?.[0]) formData.set("judgeOut", values.judgeOutput[0]);
+            if (values.statement?.[0]) formData.set("statement", values.statement[0]);
+
+            const result = problemId
+                ? await updateProblem(formData)
+                : await createProblem(formData);
+
+            if (result) {
+                setServerError(result);
+            } else {
+                router.refresh();
+                onSuccess?.();
             }
-        });
-    }
-}, [problemId, form]);
-        function handleSubmit(values: ProblemFormValues) {
-        // Do something with the form values.
-        // ✅ This will be type-safe and validated.
-        console.log("Form submitted with values:", values);   
+        } catch (error) {
+            console.error("Error submitting problem:", error);
+            setServerError("An unexpected error occurred");
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     return (
         <div className="w-full">
             <Form {...form} >
                 <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 w-full">
-                    <FormField 
+                    {serverError && (
+                        <div className="p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-500">
+                            {serverError}
+                        </div>
+                    )}
+                    <FormField
                         control={form.control}
                         name="id"
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>ID</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="Enter the problem ID" {...field} />
+                                    <Input placeholder="Enter the problem ID" {...field} disabled={!!problemId} />
                                 </FormControl>
                                 <FormDescription>
                                     This is the name that will used internally to identify the problem.
@@ -155,7 +253,7 @@ export function ModifyProblem({
                                 <FormMessage />
                             </FormItem>
                     )}/>
-                    
+
                     <FormField
                         control={form.control}
                         name="name"
@@ -179,10 +277,10 @@ export function ModifyProblem({
                             <FormItem>
                                 <FormLabel>Competition Level</FormLabel>
                                 <FormControl>
-                                    <Combobox 
-                                        searchPlaceholder={"Search a level"} 
-                                        selectPlaceholder={"Select a level"} 
-                                        emptyPlaceholder={"No levels found"} 
+                                    <Combobox
+                                        searchPlaceholder={"Search a level"}
+                                        selectPlaceholder={"Select a level"}
+                                        emptyPlaceholder={"No levels found"}
                                         options={
                                             [
                                                 { value: "Invitational A", label: "Invitational A" },
@@ -197,10 +295,26 @@ export function ModifyProblem({
                                         setValue={(value) => field.onChange(value)}
                                         disabled={false}
                                     />
-                                        
+
                                 </FormControl>
                                 <FormDescription>
                                     This is the name that will be displayed when searching for this problem
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                    )}/>
+
+                    <FormField
+                        control={form.control}
+                        name="year"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Year</FormLabel>
+                                <FormControl>
+                                    <Input type="number" placeholder="Enter the problem year" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
+                                </FormControl>
+                                <FormDescription>
+                                    The year this problem was used in competition
                                 </FormDescription>
                                 <FormMessage />
                             </FormItem>
@@ -217,7 +331,7 @@ export function ModifyProblem({
                                         <DropdownMenuTrigger asChild>
                                             <Button variant="outline" className="w-full text-left">
                                                 Select tag(s)
-                                            </Button>               
+                                            </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="start" side="bottom" avoidCollisions={false} className="w-(--radix-dropdown-menu-trigger-width)">
                                         {
@@ -232,82 +346,140 @@ export function ModifyProblem({
                                                     field.onChange(newTags); // Connect to form
                                                 }}
                                             >{tag}
-                                            </DropdownMenuCheckboxItem> )})       
+                                            </DropdownMenuCheckboxItem> )})
                                         }
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </FormControl>
                             <FormDescription>These are the tags that will be used to filter for problems</FormDescription>
                             <FormMessage />
-                            </FormItem>     
-                        ) 
+                            </FormItem>
+                        )
                     }
                     />
-                    
-                            
-                    <div className="flex flex-row gap-4">
-                        <div className="flex-1">
-                            <FormField
-                                control={form.control}
-                                name="sampleFiles"
-                                render={({ field }) => (
-                                    <FormItem className="text-center block">
-                                        <FormLabel className="text-center block">Sample Files</FormLabel>                                        <FormControl>
-                                            <FileUpload 
-                                                id="sample-upload" 
-                                                existingFiles={field.value || []}
-                                                accept=".in,.out,.dat"
-                                                onChange={(files) => {
-                                                    const currentFiles = field.value || [];
-                                                    const allFiles = [...currentFiles, ...files];
-                                                    const uniqueFiles = allFiles.filter((file, index, self) => 
-                                                        index === self.findIndex(f => f.name === file.name && f.size === file.size)
-                                                    );
-                                                    field.onChange(uniqueFiles);
-                                                }} 
-                                            />
-                                        </FormControl>
-                                        <FormDescription>
-                                            Accepts a maximum of two sample files (input/output). These files will be shown to the user.
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
+
+                    <FormField
+                        control={form.control}
+                        name="statement"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Problem Statement (PDF)</FormLabel>
+                                {problemId && existingFiles.hasStatement && (
+                                    <div className="mb-2">
+                                        <DownloadButton problemId={problemId} fileType="statement" label="Download current statement" />
+                                    </div>
                                 )}
-                            />      
-                        </div>
-                        
-                        <div className="flex-1">
-                            <FormField
-                                control={form.control}
-                                name="judgeFiles"
-                                render={({ field }) => (
-                                    <FormItem className="text-center block">
-                                        <FormLabel className="text-center block">Judge Files</FormLabel>                                        <FormControl>
-                                            <FileUpload 
-                                                id="judge-upload" 
-                                                existingFiles={field.value || []}
-                                                accept=".in,.out,.dat"
-                                                onChange={(files) => {
-                                                    const currentFiles = field.value || [];
-                                                    const allFiles = [...currentFiles, ...files];
-                                                    const uniqueFiles = allFiles.filter((file, index, self) => 
-                                                        index === self.findIndex(f => f.name === file.name && f.size === file.size)
-                                                    );
-                                                    field.onChange(uniqueFiles);
-                                                }} 
-                                            />
-                                        </FormControl>
-                                        <FormDescription>
-                                            Accepts a maximum of two sample files (input/output). These files will NOT be shown to the user.
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>  
+                                <FormControl>
+                                    <FileUpload
+                                        id="statement-upload"
+                                        existingFiles={field.value || []}
+                                        accept=".pdf"
+                                        onChange={(files) => field.onChange(files.slice(-1))}
+                                    />
+                                </FormControl>
+                                <FormDescription>
+                                    {problemId ? "Upload a new PDF to replace the existing statement" : "Upload the problem statement PDF"}
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="sampleInput"
+                            render={({ field }) => (
+                                <FormItem className="text-center">
+                                    <FormLabel className="text-center block">Sample Input</FormLabel>
+                                    {problemId && existingFiles.hasSampleDat && (
+                                        <DownloadButton problemId={problemId} fileType="sampleDat" label="Download" />
+                                    )}
+                                    <FormControl>
+                                        <FileUpload
+                                            id="sample-input"
+                                            existingFiles={field.value || []}
+                                            accept=".in,.dat,.txt"
+                                            onChange={(files) => field.onChange(files.slice(-1))}
+                                        />
+                                    </FormControl>
+                                    <FormDescription>Input shown to the user</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="sampleOutput"
+                            render={({ field }) => (
+                                <FormItem className="text-center">
+                                    <FormLabel className="text-center block">Sample Output</FormLabel>
+                                    {problemId && existingFiles.hasSampleOut && (
+                                        <DownloadButton problemId={problemId} fileType="sampleOut" label="Download" />
+                                    )}
+                                    <FormControl>
+                                        <FileUpload
+                                            id="sample-output"
+                                            existingFiles={field.value || []}
+                                            accept=".out,.txt"
+                                            onChange={(files) => field.onChange(files.slice(-1))}
+                                        />
+                                    </FormControl>
+                                    <FormDescription>Expected output shown to the user</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="judgeInput"
+                            render={({ field }) => (
+                                <FormItem className="text-center">
+                                    <FormLabel className="text-center block">Judge Input</FormLabel>
+                                    {problemId && existingFiles.hasJudgeDat && (
+                                        <DownloadButton problemId={problemId} fileType="judgeDat" label="Download" />
+                                    )}
+                                    <FormControl>
+                                        <FileUpload
+                                            id="judge-input"
+                                            existingFiles={field.value || []}
+                                            accept=".in,.dat,.txt"
+                                            onChange={(files) => field.onChange(files.slice(-1))}
+                                        />
+                                    </FormControl>
+                                    <FormDescription>Input used for grading (hidden)</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="judgeOutput"
+                            render={({ field }) => (
+                                <FormItem className="text-center">
+                                    <FormLabel className="text-center block">Judge Output</FormLabel>
+                                    {problemId && existingFiles.hasJudgeOut && (
+                                        <DownloadButton problemId={problemId} fileType="judgeOut" label="Download" />
+                                    )}
+                                    <FormControl>
+                                        <FileUpload
+                                            id="judge-output"
+                                            existingFiles={field.value || []}
+                                            accept=".out,.txt"
+                                            onChange={(files) => field.onChange(files.slice(-1))}
+                                        />
+                                    </FormControl>
+                                    <FormDescription>Expected output for grading (hidden)</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                     </div>
-                               
-                    <Button variant="default" type="submit" className="gap-y-4 w-full" >Submit</Button>         
+
+                    <Button variant="default" type="submit" className="gap-y-4 w-full" disabled={isSubmitting}>
+                        {isSubmitting ? "Submitting..." : (problemId ? "Update Problem" : "Create Problem")}
+                    </Button>
                 </form>
             </Form>
         </div>

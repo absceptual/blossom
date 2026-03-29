@@ -3,7 +3,7 @@ import { verifySession } from "@/lib/dal";
 import { UserPermissions } from "@/lib/types";
 import { hasPermission } from "@/lib/utilities";
 import { Problem, FetchedProblem, Submission, SubmissionStatusType } from "@/types/submission";
-import { del, list } from "@vercel/blob";
+import { uploadFile, deleteFile, fileExists, retrieveFile } from "@/actions/azure";
 import postgres from 'postgres'
 
 if (!process.env.DATABASE_URL) {
@@ -55,10 +55,12 @@ export async function deleteProblem(problemId: string) {
             WHERE problem_id = ${problemId}::text
         `;
 
-        // Delete associated files from blob storage
+        // Delete associated files from Azure Blob storage
         await Promise.all([
-            list({ prefix: `data/${problemId}/sample/` }).then(blobs => blobs.blobs.forEach(blob => del(blob.url))),
-            list({ prefix: `data/${problemId}/judge/` }).then(blobs => blobs.blobs.forEach(blob => del(blob.url)))
+            deleteFile(`${problemId}/sample/${problemId}.dat`),
+            deleteFile(`${problemId}/sample/${problemId}.out`),
+            deleteFile(`${problemId}/judge/${problemId}.dat`),
+            deleteFile(`${problemId}/judge/${problemId}.out`),
         ]);
 
         return true;
@@ -67,6 +69,24 @@ export async function deleteProblem(problemId: string) {
         return false;
     }
 }
+export async function getSubmissionsByProblem(problemId: string, count: number) {
+    const session = await verifySession();
+    if (!session) return null;
+
+    try {
+        const submissions: Submission[] = await sql`
+            SELECT * FROM submissions
+            WHERE problem_id = ${problemId}::text
+            ORDER BY date DESC
+            LIMIT ${count}
+        `;
+        return submissions;
+    } catch (error) {
+        console.error('Error fetching submissions by problem:', error);
+        return null;
+    }
+}
+
 export async function getRecentUserSubmissionsByProblem(problemId: string, username: string, count: number) {
     const session = await verifySession();
     if (!session) return null;
@@ -137,29 +157,70 @@ export async function getExistingProblemFiles(problemId: string) {
     const session = await verifySession();
     if (!session) return null;
 
-    const [sampleBlobs, judgeBlobs] = await Promise.all([
-        list({ prefix: `data/${problemId}/sample/` }),
-        list({ prefix: `data/${problemId}/judge/` })
+    const paths = {
+        sampleDat: `${problemId}/sample/${problemId}.dat`,
+        sampleOut: `${problemId}/sample/${problemId}.out`,
+        judgeDat: `${problemId}/judge/${problemId}.dat`,
+        judgeOut: `${problemId}/judge/${problemId}.out`,
+        statement: `${problemId}/statement.pdf`,
+    };
+
+    const [sampleDatExists, sampleOutExists, judgeDatExists, judgeOutExists, statementExists] = await Promise.all([
+        fileExists(paths.sampleDat),
+        fileExists(paths.sampleOut),
+        fileExists(paths.judgeDat),
+        fileExists(paths.judgeOut),
+        fileExists(paths.statement),
     ]);
 
-    // Return blob metadata instead of File objects
-    const sampleFileMetadata = sampleBlobs.blobs.map(blob => ({
-        url: blob.url,
-        name: blob.pathname.split('/').pop() || '',
-        size: blob.size,
-        uploadedAt: blob.uploadedAt.getTime(),
-        type: 'text/plain'
-    })).filter(blob => blob.name !== ''); // Filter out empty names
+    const sampleFiles: { name: string; content: string }[] = [];
+    const judgeFiles: { name: string; content: string }[] = [];
 
-    const judgeFileMetadata = judgeBlobs.blobs.map(blob => ({
-        url: blob.url,
-        name: blob.pathname.split('/').pop() || '',
-        size: blob.size,
-        uploadedAt: blob.uploadedAt.getTime(),
-        type: 'text/plain'
-    })).filter(blob => blob.name !== '');
+    if (sampleDatExists) {
+        const data = await retrieveFile(paths.sampleDat);
+        sampleFiles.push({ name: `${problemId}.dat`, content: data.toString() });
+    }
+    if (sampleOutExists) {
+        const data = await retrieveFile(paths.sampleOut);
+        sampleFiles.push({ name: `${problemId}.out`, content: data.toString() });
+    }
+    if (judgeDatExists) {
+        const data = await retrieveFile(paths.judgeDat);
+        judgeFiles.push({ name: `${problemId}.dat`, content: data.toString() });
+    }
+    if (judgeOutExists) {
+        const data = await retrieveFile(paths.judgeOut);
+        judgeFiles.push({ name: `${problemId}.out`, content: data.toString() });
+    }
 
-    return { sampleFiles: sampleFileMetadata, judgeFiles: judgeFileMetadata };
+    return { sampleFiles, judgeFiles, hasStatement: statementExists };
+}
+
+export async function downloadProblemFile(problemId: string, fileType: 'sampleDat' | 'sampleOut' | 'judgeDat' | 'judgeOut' | 'statement') {
+    const session = await verifySession();
+    if (!session) return null;
+
+    const pathMap: Record<string, string> = {
+        sampleDat: `${problemId}/sample/${problemId}.dat`,
+        sampleOut: `${problemId}/sample/${problemId}.out`,
+        judgeDat: `${problemId}/judge/${problemId}.dat`,
+        judgeOut: `${problemId}/judge/${problemId}.out`,
+        statement: `${problemId}/statement.pdf`,
+    };
+
+    const path = pathMap[fileType];
+    if (!path) return null;
+
+    const exists = await fileExists(path);
+    if (!exists) return null;
+
+    const data = await retrieveFile(path) as Buffer;
+    // Return as base64 so it can cross the server action boundary
+    return {
+        data: data.toString('base64'),
+        name: fileType === 'statement' ? `${problemId}.pdf` : path.split('/').pop()!,
+        type: fileType === 'statement' ? 'application/pdf' : 'text/plain',
+    };
 }
 
 export async function getAvailableProblems() {
@@ -299,6 +360,140 @@ export async function getUserStartedProblems(username: string) {
     } catch (error) {
         console.error('Error fetching user problems:', error);
         return [];
+    }
+}
+
+export async function createProblem(formData: FormData) {
+    const session = await verifySession();
+    if (!session) return "Not authenticated";
+
+    const permissions = session.permissions as UserPermissions[];
+    if (!hasPermission(permissions, [UserPermissions.MANAGE_PROBLEMS]))
+        return "Insufficient permissions";
+
+    const problemId = (formData.get("id") as string)?.trim();
+    const name = (formData.get("name") as string)?.trim();
+    const level = formData.get("level") as string;
+    const year = parseInt(formData.get("year") as string);
+    const tags = JSON.parse(formData.get("tags") as string || "[]");
+
+    if (!problemId || !name || !level || !year) {
+        return "Missing required fields";
+    }
+
+    // Check if problem already exists
+    const existing = await sql`SELECT problem_id FROM problems WHERE problem_id = ${problemId}::text`;
+    if (existing.length > 0) {
+        return "A problem with this ID already exists";
+    }
+
+    try {
+        const id = Number((await sql`SELECT COUNT(*) FROM problems`)[0].count) + 1;
+
+        await sql`
+            INSERT INTO problems (id, problem_id, problem_name, competition_level, problem_year, tags)
+            VALUES (${id}, ${problemId}, ${name}, ${level}, ${year}, ${tags})
+        `;
+
+        // Upload files to Azure Blob
+        const sampleDat = formData.get("sampleDat") as File | null;
+        const sampleOut = formData.get("sampleOut") as File | null;
+        const judgeDat = formData.get("judgeDat") as File | null;
+        const judgeOut = formData.get("judgeOut") as File | null;
+
+        const uploads: Promise<void>[] = [];
+        if (sampleDat && sampleDat.size > 0) {
+            const buffer = Buffer.from(await sampleDat.arrayBuffer());
+            uploads.push(uploadFile(`${problemId}/sample/${problemId}.dat`, buffer, buffer.length));
+        }
+        if (sampleOut && sampleOut.size > 0) {
+            const buffer = Buffer.from(await sampleOut.arrayBuffer());
+            uploads.push(uploadFile(`${problemId}/sample/${problemId}.out`, buffer, buffer.length));
+        }
+        if (judgeDat && judgeDat.size > 0) {
+            const buffer = Buffer.from(await judgeDat.arrayBuffer());
+            uploads.push(uploadFile(`${problemId}/judge/${problemId}.dat`, buffer, buffer.length));
+        }
+        if (judgeOut && judgeOut.size > 0) {
+            const buffer = Buffer.from(await judgeOut.arrayBuffer());
+            uploads.push(uploadFile(`${problemId}/judge/${problemId}.out`, buffer, buffer.length));
+        }
+        const statement = formData.get("statement") as File | null;
+        if (statement && statement.size > 0) {
+            const buffer = Buffer.from(await statement.arrayBuffer());
+            uploads.push(uploadFile(`${problemId}/statement.pdf`, buffer, buffer.length));
+        }
+        await Promise.all(uploads);
+
+        return null; // success
+    } catch (error) {
+        console.error('Error creating problem:', error);
+        return "Failed to create problem";
+    }
+}
+
+export async function updateProblem(formData: FormData) {
+    const session = await verifySession();
+    if (!session) return "Not authenticated";
+
+    const permissions = session.permissions as UserPermissions[];
+    if (!hasPermission(permissions, [UserPermissions.MANAGE_PROBLEMS]))
+        return "Insufficient permissions";
+
+    const problemId = (formData.get("id") as string)?.trim();
+    const name = (formData.get("name") as string)?.trim();
+    const level = formData.get("level") as string;
+    const year = parseInt(formData.get("year") as string);
+    const tags = JSON.parse(formData.get("tags") as string || "[]");
+
+    if (!problemId || !name || !level || !year) {
+        return "Missing required fields";
+    }
+
+    try {
+        await sql`
+            UPDATE problems
+            SET problem_name = ${name},
+                competition_level = ${level},
+                problem_year = ${year},
+                tags = ${tags}
+            WHERE problem_id = ${problemId}::text
+        `;
+
+        // Upload new files if provided (overwrites existing)
+        const sampleDat = formData.get("sampleDat") as File | null;
+        const sampleOut = formData.get("sampleOut") as File | null;
+        const judgeDat = formData.get("judgeDat") as File | null;
+        const judgeOut = formData.get("judgeOut") as File | null;
+
+        const uploads: Promise<void>[] = [];
+        if (sampleDat && sampleDat.size > 0) {
+            const buffer = Buffer.from(await sampleDat.arrayBuffer());
+            uploads.push(uploadFile(`${problemId}/sample/${problemId}.dat`, buffer, buffer.length));
+        }
+        if (sampleOut && sampleOut.size > 0) {
+            const buffer = Buffer.from(await sampleOut.arrayBuffer());
+            uploads.push(uploadFile(`${problemId}/sample/${problemId}.out`, buffer, buffer.length));
+        }
+        if (judgeDat && judgeDat.size > 0) {
+            const buffer = Buffer.from(await judgeDat.arrayBuffer());
+            uploads.push(uploadFile(`${problemId}/judge/${problemId}.dat`, buffer, buffer.length));
+        }
+        if (judgeOut && judgeOut.size > 0) {
+            const buffer = Buffer.from(await judgeOut.arrayBuffer());
+            uploads.push(uploadFile(`${problemId}/judge/${problemId}.out`, buffer, buffer.length));
+        }
+        const statement = formData.get("statement") as File | null;
+        if (statement && statement.size > 0) {
+            const buffer = Buffer.from(await statement.arrayBuffer());
+            uploads.push(uploadFile(`${problemId}/statement.pdf`, buffer, buffer.length));
+        }
+        await Promise.all(uploads);
+
+        return null; // success
+    } catch (error) {
+        console.error('Error updating problem:', error);
+        return "Failed to update problem";
     }
 }
 

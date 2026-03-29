@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { Table as TanstackTable } from "@tanstack/react-table";
 import { DropdownMenu,  DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger  } from "@/components/ui/dropdown-menu";
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon } from "@heroicons/react/24/solid";
+import { ModifyProblemDialog } from "./modify-problem";
 
 import {
     ColumnDef,
@@ -43,7 +44,7 @@ interface DataTableProps<TData, TValue> {
 
 
 const levels = ["Invitational A", "Invitational B", "District", "Region", "State"];
-const years  = [2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014, 2013];
+const years  = [2027, 2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014, 2013];
 const initialColumnFilters: ColumnFiltersState = [
     { id: "competition_level", value: [...levels] },
     { id: "problem_year", value: [...years] }
@@ -98,17 +99,12 @@ export function ProblemTable<TData, TValue>({
                     className="max-w-sm"
                 />
 
-                <div className="grid grid-cols-1 items-center gap-2 justify-between">
-                    {
-                      /*
-                        <ModifyProblemDialog
-                      title="Create Problem"
-                      description="Create a new problem to add to the database"
+                <div className="flex items-center gap-2 justify-between">
+                    <ModifyProblemDialog
+                        title="Create Problem"
+                        description="Create a new problem to add to the database"
                     />
-                      */
-                    }
-                    
-                    <Button variant="default" onClick={() => { 
+                    <Button variant="outline" onClick={() => {
                         table.resetColumnFilters();
                         setColumnFilters(initialColumnFilters);
                     }}>

@@ -26,6 +26,18 @@ export async function uploadFile(path, data, length = data.length) {
     await blockBlobClient.upload(data, length)
 }
 
+export async function deleteFile(path) {
+    const dataContainer = await getDataContainer();
+    const blockBlobClient = dataContainer.getBlockBlobClient(path);
+    await blockBlobClient.deleteIfExists();
+}
+
+export async function fileExists(path) {
+    const dataContainer = await getDataContainer();
+    const blockBlobClient = dataContainer.getBlockBlobClient(path);
+    return await blockBlobClient.exists();
+}
+
 export async function retrieveFile(path) {
     const dataContainer = await getDataContainer();
     const streamToBuffer = (stream) => {

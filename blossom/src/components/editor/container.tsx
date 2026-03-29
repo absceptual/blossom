@@ -31,7 +31,7 @@ export default function Container({
                         <ResizablePanelGroup direction="vertical">
                             <ResizablePanel  className="flex-1">
                                 { /* TODO: Replace with the single PDF of the current problem statement */}
-                                <iframe src={`/problem_statements/${problemId}.pdf`} className="w-full h-full" title="PDF Viewer"></iframe>
+                                <iframe src={`/api/statement?id=${problemId}`} className="w-full h-full" title="PDF Viewer"></iframe>
                             </ResizablePanel >
                             <ResizableHandle className="bg-neutral-950"/>
                             <ResizablePanel className="flex-1">
