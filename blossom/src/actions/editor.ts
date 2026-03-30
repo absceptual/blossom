@@ -238,7 +238,8 @@ export async function submitJudge(code: string, input: string, problemId: string
             problem_id: problemId,
             username: session?.username as string,
             status: result.status.description as SubmissionStatusType,
-            date: new Date()
+            date: new Date(),
+            token: result.token || undefined
         });
     }
     return result;

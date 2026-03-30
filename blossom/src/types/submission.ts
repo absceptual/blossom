@@ -22,6 +22,7 @@ export interface Submission {
   username: string;
   status: SubmissionStatusType
   date: Date;
+  token?: string;
 }
 
 export interface SubmissionResult {
@@ -31,8 +32,9 @@ export interface SubmissionResult {
   }
   stdout?: string;
   stderr?: string;
-  compile_output?: string;  
+  compile_output?: string;
   message?: string;
+  token?: string;
 }
 
 export type SubmissionStatusType = 

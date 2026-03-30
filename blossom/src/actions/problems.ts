@@ -19,8 +19,8 @@ export async function createSubmissionEntry(submission: Submission) {
     const username: string = session?.username as string;
     try {
         await sql`
-            INSERT INTO submissions(problem_id, username, status, date)
-            VALUES (${submission.problem_id}, ${username}, ${submission.status}, ${new Date(submission.date)})
+            INSERT INTO submissions(problem_id, username, status, date, token)
+            VALUES (${submission.problem_id}, ${username}, ${submission.status}, ${new Date(submission.date)}, ${submission.token || null})
         `;
         return true;
     } catch (error) {
@@ -246,7 +246,7 @@ export async function startProblem(problemId: string) {
         await sql`
             INSERT INTO user_problems (username, problem_id, last_worked)
             VALUES (${username}::varchar(255), ${problemId}::text, CURRENT_TIMESTAMP)
-            ON CONFLICT (problem_id)
+            ON CONFLICT (username, problem_id)
             DO UPDATE SET last_worked = CURRENT_TIMESTAMP
         `;
         return true;
