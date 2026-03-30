@@ -10,10 +10,10 @@ export default async function Layout({
 }) {
 
     const cookieStore = await cookies();
-    const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
+    //const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
 
     return (
-        <SidebarProvider defaultOpen={defaultOpen}>
+        <SidebarProvider defaultOpen={true}>
             <AppSidebar />
             <main className="w-full">
                 {children}
