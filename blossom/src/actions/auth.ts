@@ -10,14 +10,14 @@ const sql = postgres(process.env.DATABASE_URL);
 import { object, string } from 'yup';
 
 const loginSchema = object({
-  username: string().required("Username is required").min(3, "Username must be at least 3 characters").max(14, "Username must be at most 14 characters"),
+  username: string().required("Username is required").min(3, "Username must be at least 3 characters").max(14, "Username must be at most 14 characters").matches(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
   password: string().required("Password is required").min(8, "Password must be at least 8 characters"),
 })
 
 const registerSchema = object({
-  username: string().required("Username is required").min(3, "Username must be at least 3 characters").max(14, "Username must be at most 14 characters"),
+  username: string().required("Username is required").min(3, "Username must be at least 3 characters").max(14, "Username must be at most 14 characters").matches(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
   password: string().required("Password is required").min(8, "Password must be at least 8 characters"),
-  accessCode: string().required("Access code is required")
+  accessCode: string().required("Access code is required").matches(/^[a-zA-Z0-9_-]+$/, "Invalid access code format")
 })
 
 export async function logout() {
@@ -41,8 +41,8 @@ export async function signup(formData: FormData) {
             password: password,
             accessCode: accessCode
         });
-    } catch (error) {
-        return error.message;
+    } catch (error: unknown) {
+        return error instanceof Error ? error.message : "Validation failed";
     }
 
     const users = await sql`SELECT id FROM users where username = ${username}`;
@@ -51,7 +51,6 @@ export async function signup(formData: FormData) {
     }
 
     const hashedPassword = await bcrypt.hash(password, HASH_ROUNDS);
-    const id = Number((await sql`SELECT COUNT(*) FROM users`)[0].count) + 1;
     const accessCodes = await sql`
         SELECT current_uses, maximum_uses, permissions FROM access_codes WHERE code = ${accessCode}
     `;
@@ -66,8 +65,8 @@ export async function signup(formData: FormData) {
     }
 
     await sql`
-        INSERT INTO users (id, username, hash, code, permissions)
-        VALUES (${id}, ${username}, ${hashedPassword}, ${accessCode}, ${codeEntry.permissions})
+        INSERT INTO users (username, hash, code, permissions)
+        VALUES (${username}, ${hashedPassword}, ${accessCode}, ${codeEntry.permissions})
     `;
 
     await sql`
@@ -89,9 +88,10 @@ export async function login(formData: FormData) {
             username: username,
             password: password
         });
-    } catch (error) {
-        console.error("Validation error:", error.message);
-        return error.message;
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Validation failed";
+        console.error("Validation error:", message);
+        return message;
     }
 
     const user = await sql`SELECT hash, permissions FROM users where username = ${username}`;

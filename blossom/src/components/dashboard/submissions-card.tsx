@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { getProblem } from "@/actions/problems";
 import { Submission } from "@/types/submission";
 import { CompetitionLevelColors, SubmissionStatusBadgeVariants } from "@/types/dashboard";
+import { ClientTimeAgo, ClientFormattedDate } from "@/components/dashboard/client-time";
 
 
 
@@ -25,13 +26,14 @@ export async function SubmissionsCard({ title, description, submissions, usernam
                 <div className="space-y-4">
                     {submissions.map((submission: Submission, index) => {
                         const problem = problems[index];
-                        const submissionDate = typeof submission.date === 'string' ? 
-                            new Date(submission.date) : submission.date;
+                        const dateStr = typeof submission.date === 'string'
+                            ? submission.date
+                            : submission.date.toISOString();
 
-                        return ( 
+                        return (
                         <div key={index} className="flex items-center">
                             <div className="flex items-center space-x-4 flex-1">
-                                {showUser && 
+                                {showUser &&
                                     <div className="w-25">
                                         <span className="text-sm text-muted-foreground">
                                             {submission.username}
@@ -53,7 +55,7 @@ export async function SubmissionsCard({ title, description, submissions, usernam
                                         <DialogTrigger className="hover:cursor-pointer" asChild>
                                             {getStatusBadge(submission.status)}
                                         </DialogTrigger>
-                                        
+
                                         <DialogContent className="sm:max-w-[425px]">
                                             <DialogHeader>
                                                 <DialogTitle>Submission Details</DialogTitle>
@@ -61,24 +63,24 @@ export async function SubmissionsCard({ title, description, submissions, usernam
                                                 View details about this submission.
                                                 </DialogDescription>
                                             </DialogHeader>
-                                            <SubmissionDetailsCard submission={submission} problem={problem} /> 
+                                            <SubmissionDetailsCard submission={submission} problem={problem} />
                                             <DialogFooter>
                                                 <DialogClose asChild>
                                                     <Button variant="outline">Close</Button>
                                                 </DialogClose>
-                                                { submission.username === username && 
+                                                { submission.username === username &&
                                                     <Button asChild>
                                                         <Link href={`/editor/?id=${submission.problem_id}`}>
                                                             Open in Editor
                                                         </Link>
                                                     </Button>
                                                 }
-                                            </DialogFooter>                                      
+                                            </DialogFooter>
                                         </DialogContent>
                                     </Dialog>
                                 </div>
                                 <div className="w-25 text-xs text-muted-foreground">
-                                    {formatTimeAgo(submissionDate)}
+                                    <ClientTimeAgo date={dateStr} />
                                 </div>
                             </div>
                         </div>
@@ -92,18 +94,9 @@ export async function SubmissionsCard({ title, description, submissions, usernam
 
 
 export function SubmissionDetailsCard({ submission, problem, showUser = true }) {
-    const submissionDate = typeof submission.date === 'string' ? 
-        new Date(submission.date) : submission.date;
-
-    const formattedDate = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'America/Chicago',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-    }).format(submissionDate);
+    const dateStr = typeof submission.date === 'string'
+        ? submission.date
+        : submission.date.toISOString();
 
     return (
         <div className="grid gap-4 py-4">
@@ -121,9 +114,11 @@ export function SubmissionDetailsCard({ submission, problem, showUser = true }) 
             </div>
             <div className="grid gap-2">
                 <Label>Submitted</Label>
-                <div className="text-sm text-muted-foreground">{formattedDate}</div>
+                <div className="text-sm text-muted-foreground">
+                    <ClientFormattedDate date={dateStr} />
+                </div>
             </div>
-            {showUser && 
+            {showUser &&
                 <div className="grid gap-2">
                     <Label>Submitted By</Label>
                     <div className="text-sm text-muted-foreground">
@@ -138,7 +133,6 @@ export function SubmissionDetailsCard({ submission, problem, showUser = true }) 
 export function formatTimeAgo(dateStr: string | Date): string {
     let date: Date;
     if (typeof dateStr === 'string') {
-        // Ensure the string is parsed as UTC — append Z if no timezone info present
         const normalized = dateStr.includes('+') || dateStr.endsWith('Z')
             ? dateStr
             : dateStr.replace(' ', 'T') + 'Z';
