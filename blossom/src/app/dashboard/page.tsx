@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { verifySession } from "@/lib/dal"
 
 import Component from "@/components/dashboard/submissions-chart";

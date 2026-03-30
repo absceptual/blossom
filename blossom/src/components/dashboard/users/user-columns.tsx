@@ -213,16 +213,18 @@ function RenameUserDialog({ username, trigger }: { username: string; trigger: Re
 
 function ResetPasswordDialog({ username, trigger }: { username: string; trigger: React.ReactNode }) {
     const [open, setOpen] = useState(false);
-    const [password, setPassword] = useState("");
+    const [hash, setHash] = useState("");
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => { if (open) { setPassword(""); setError(null); } }, [open]);
+    useEffect(() => { if (open) { setHash(""); setError(null); } }, [open]);
+
+    const isValidHash = hash.startsWith('$2b$') && hash.length >= 50;
 
     async function handleSave() {
         setSaving(true);
         setError(null);
-        const result = await resetUserPassword(username, password);
+        const result = await resetUserPassword(username, hash);
         if (result) setError(result);
         else setOpen(false);
         setSaving(false);
@@ -231,19 +233,20 @@ function ResetPasswordDialog({ username, trigger }: { username: string; trigger:
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>{trigger}</DialogTrigger>
-            <DialogContent className="sm:max-w-[400px]">
+            <DialogContent className="sm:max-w-[450px]">
                 <DialogHeader>
                     <DialogTitle>Reset Password</DialogTitle>
-                    <DialogDescription>Set a new password for {username}</DialogDescription>
+                    <DialogDescription>Paste the bcrypt hash provided by {username} to reset their password.</DialogDescription>
                 </DialogHeader>
                 {error && <div className="p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-500">{error}</div>}
                 <div className="grid gap-3 py-4">
-                    <Label>New Password</Label>
-                    <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min 8 characters" />
+                    <Label>Bcrypt Hash</Label>
+                    <Input type="text" value={hash} onChange={(e) => setHash(e.target.value)} placeholder="$2b$10$..." className="font-mono text-sm" />
+                    {hash && !isValidHash && <p className="text-xs text-muted-foreground">Hash must start with $2b$ and be at least 50 characters</p>}
                 </div>
                 <DialogFooter>
                     <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-                    <Button onClick={handleSave} disabled={saving || password.length < 8}>{saving ? "Saving..." : "Reset Password"}</Button>
+                    <Button onClick={handleSave} disabled={saving || !isValidHash}>{saving ? "Saving..." : "Reset Password"}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

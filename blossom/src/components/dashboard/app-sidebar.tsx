@@ -74,7 +74,7 @@ const serverManagement: Section[] = [
     {
         label: 'Judge0',
         icon: ServerStackIcon,
-        url: '#',
+        url: '/dashboard/judge0',
         permissions: [UserPermissions.VIEW_JUDGE0_CONFIG] as UserPermissions[]
     },
     {

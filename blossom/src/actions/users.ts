@@ -91,15 +91,14 @@ export async function updateUsername(oldUsername: string, newUsername: string) {
     }
 }
 
-export async function resetUserPassword(username: string, newPassword: string) {
+export async function resetUserPassword(username: string, hash: string) {
     if (!await requireManageUsers()) return "Not authorized";
 
-    if (!newPassword || newPassword.length < 8) {
-        return "Password must be at least 8 characters";
+    if (!hash || !hash.startsWith('$2b$') || hash.length < 50) {
+        return "Invalid bcrypt hash. Must be a valid bcrypt hash starting with $2b$";
     }
 
     try {
-        const hash = await bcrypt.hash(newPassword, 10);
         await sql`UPDATE users SET hash = ${hash} WHERE username = ${username}`;
         return null;
     } catch (error) {

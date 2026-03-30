@@ -2,7 +2,7 @@
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import {
   Dialog,
@@ -58,7 +58,7 @@ export function LoginForm({
   const [success, setSuccess] = useState(false);
   const router = useRouter();
 
-  const validateForm = async () => {
+  const validateForm = useCallback(async () => {
     try {
       await loginSchema.validate(formData, { abortEarly: false });
       setIsValid(true);
@@ -72,11 +72,11 @@ export function LoginForm({
       setErrors(validationErrors);
       setIsValid(false);
     }
-  };
+  }, [formData]);
 
   useEffect(() => {
     validateForm();
-  }, [formData]);
+  }, [validateForm]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -196,13 +196,20 @@ export function LoginForm({
                         Forgot your password?
                       </a>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px] min-w-[450px]">
+                    <DialogContent className="sm:max-w-[500px]">
                       <DialogHeader>
-                        <DialogTitle>Password resets are currently unavailable</DialogTitle>
+                        <DialogTitle>Reset Your Password</DialogTitle>
                         <DialogDescription>
-                          Please contact the administrator to manually reset your account.
+                          To reset your password, generate a bcrypt hash of your new password and send it to the administrator.
                         </DialogDescription>
                       </DialogHeader>
+                      <div className="space-y-3 text-sm">
+                        <p>1. Open a terminal and run one of the following commands with your new password:</p>
+                        <pre className="rounded-md bg-muted p-3 text-xs font-mono overflow-x-auto whitespace-pre-wrap">npx bcryptjs &quot;your-new-password&quot;</pre>
+                        <p className="text-xs text-muted-foreground">Or use any online bcrypt hash generator.</p>
+                        <p>2. Copy the resulting hash (starts with <code className="text-xs bg-muted px-1 py-0.5 rounded">$2b$</code>).</p>
+                        <p>3. Send the hash to your administrator. They will update your password without ever seeing it in plaintext.</p>
+                      </div>
                     </DialogContent>
                   </Dialog>
                 </div>
@@ -259,7 +266,7 @@ export function RegisterForm({
   const [success, setSuccess] = useState(false);
   const router = useRouter();
 
-  const validateForm = async () => {
+  const validateForm = useCallback(async () => {
     try {
       await registerSchema.validate(formData, { abortEarly: false });
       setIsValid(true);
@@ -273,11 +280,11 @@ export function RegisterForm({
       setErrors(validationErrors);
       setIsValid(false);
     }
-  };
+  }, [formData]);
 
   useEffect(() => {
     validateForm();
-  }, [formData]);
+  }, [validateForm]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

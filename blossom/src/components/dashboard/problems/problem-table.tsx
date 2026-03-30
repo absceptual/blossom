@@ -7,6 +7,7 @@ import type { Table as TanstackTable } from "@tanstack/react-table";
 import { DropdownMenu,  DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger  } from "@/components/ui/dropdown-menu";
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon } from "@heroicons/react/24/solid";
 import { ModifyProblemDialog } from "./modify-problem";
+import { UserPermissions } from "@/lib/types";
 
 import {
     ColumnDef,
@@ -40,11 +41,12 @@ import {
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[];
     data: TData[];
+    permissions?: number[];
 }
 
 
 const levels = ["Invitational A", "Invitational B", "District", "Region", "State"];
-const years  = [2027, 2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014, 2013];
+const years  = [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014, 2013];
 const initialColumnFilters: ColumnFiltersState = [
     { id: "competition_level", value: [...levels] },
     { id: "problem_year", value: [...years] }
@@ -53,6 +55,7 @@ const initialColumnFilters: ColumnFiltersState = [
 export function ProblemTable<TData, TValue>({
     columns,
     data,
+    permissions = [],
 }: DataTableProps<TData, TValue>) {
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(initialColumnFilters);
 
@@ -67,6 +70,7 @@ export function ProblemTable<TData, TValue>({
         state: {
           columnFilters
         },
+        meta: { permissions },
     });
 
     function handleFilterChange(columnId: string, itemToToggle, shouldAdd: boolean) {
@@ -100,10 +104,12 @@ export function ProblemTable<TData, TValue>({
                 />
 
                 <div className="flex items-center gap-2 justify-between">
-                    <ModifyProblemDialog
-                        title="Create Problem"
-                        description="Create a new problem to add to the database"
-                    />
+                    {permissions.includes(UserPermissions.MANAGE_PROBLEMS) && (
+                        <ModifyProblemDialog
+                            title="Create Problem"
+                            description="Create a new problem to add to the database"
+                        />
+                    )}
                     <Button variant="outline" onClick={() => {
                         table.resetColumnFilters();
                         setColumnFilters(initialColumnFilters);

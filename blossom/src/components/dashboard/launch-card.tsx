@@ -27,16 +27,16 @@ export default function LaunchCard({ username }: { username: string }) {
   const [availableProblems, setAvailableProblems] = useState([]);
 
   useEffect(() => {
-    const fetchStartedProblems = async () => {
-      getUserStartedProblems(username)
-        .then(setStartedProblems);
+    const fetchData = () => {
+      getUserStartedProblems(username).then(setStartedProblems);
+      getAvailableProblems().then((result) => setAvailableProblems(result as unknown as Problem[]));
     };
-    const fetchAvailableProblems = async () => {
-      const result = await getAvailableProblems();
-      setAvailableProblems(result as unknown as Problem[]);
-    }
-    fetchStartedProblems();
-    fetchAvailableProblems();
+    fetchData();
+
+    // Refresh when the user navigates back to this tab
+    const handleFocus = () => fetchData();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [username]);
 
   const handleNewProblem = async (problemId: string) => {
