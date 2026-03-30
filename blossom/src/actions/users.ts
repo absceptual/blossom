@@ -4,7 +4,6 @@ import { UserPermissions } from "@/lib/types";
 import { hasPermission } from "@/lib/utilities";
 import { Submission } from "@/types/submission";
 import postgres from 'postgres';
-import bcrypt from 'bcrypt';
 
 const sql = postgres(process.env.DATABASE_URL!);
 
