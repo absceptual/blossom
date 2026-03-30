@@ -19,6 +19,5 @@ export const verifySession = cache(async () => {
   const user = await sql`SELECT id FROM users WHERE username = ${session?.username as string}`;
   if (user.length === 0)
     redirect('/portal');
-
   return { isAuth: true as boolean, username: session?.username as string, permissions: session?.permissions as UserPermissions[] } as const;
 })
