@@ -1,6 +1,7 @@
 
 import { BlobServiceClient  } from '@azure/storage-blob';
 
+const CONTAINER_NAME = process.env.AZURE_CONTAINER_NAME || "data";
 const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING || "";
 
 if (!AZURE_STORAGE_CONNECTION_STRING) {
@@ -13,7 +14,7 @@ const blobServiceClient = BlobServiceClient.fromConnectionString(
 );
 
 async function getDataContainer() {
-    const dataContainerClient = blobServiceClient.getContainerClient("data")
+    const dataContainerClient = blobServiceClient.getContainerClient(CONTAINER_NAME)
     await dataContainerClient.createIfNotExists();
 
     return dataContainerClient;
